@@ -6,13 +6,18 @@ const Message = ({ message, own }) => {
             <div className="flex gap-2 max-w-[70%] items-end">
                 {!own && (
                     <img
-                        src={`https://ui-avatars.com/api/?name=${message.senderName || 'U'}&background=FFD700&color=2F4F4F`}
+                        src={`https://ui-avatars.com/api/?name=${message.senderName || 'U'}&background=E8A63A&color=fff`}
                         className="w-8 h-8 rounded-full mb-1"
                         alt=""
                     />
                 )}
 
-                <div className={`p-4 shadow-sm relative ${own ? "bg-[#2F4F4F] text-white rounded-2xl rounded-tr-sm" : "bg-white text-gray-800 rounded-2xl rounded-tl-sm border border-gray-100"}`}>
+                <div className={`p-4 shadow-sm relative`} style={{
+                    backgroundColor: own ? "#2c5f5d" : "#fff",
+                    color: own ? "#fff" : "#333",
+                    borderRadius: own ? "16px 4px 16px 16px" : "4px 16px 16px 16px",
+                    border: own ? "none" : "1px solid #ddd"
+                }}>
                     <p className="text-sm leading-relaxed">{message.content}</p>
                 </div>
             </div>
