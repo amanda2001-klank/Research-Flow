@@ -1,4 +1,5 @@
 import { useState, useContext } from "react";
+import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import NotificationCenter from "../components/NotificationCenter";
 import { FaCheckCircle, FaCircle, FaPlus, FaCalendarAlt } from "react-icons/fa";
@@ -40,6 +41,15 @@ const ProjectMilestoneTimeline = () => {
         }
     ]);
 
+    const [showModal, setShowModal] = useState(false);
+    const [newMilestone, setNewMilestone] = useState({
+        title: "",
+        description: "",
+        dueDate: "",
+        status: "pending",
+        progress: 0
+    });
+
     const getStatusColor = (status) => {
         switch (status) {
             case "completed":
@@ -64,6 +74,51 @@ const ProjectMilestoneTimeline = () => {
             default:
                 return "bg-gray-50 border-gray-200";
         }
+    };
+
+    const handleAddMilestone = async (e) => {
+        e.preventDefault();
+        
+        if (!newMilestone.title || !newMilestone.dueDate) {
+            alert("Please fill in title and due date");
+            return;
+        }
+
+        const milestone = {
+            id: milestones.length + 1,
+            ...newMilestone
+        };
+
+        setMilestones([...milestones, milestone]);
+        
+        // Create notification
+        try {
+            await axios.post("http://localhost:5000/api/notifications", {
+                recipient: user._id,
+                type: "system",
+                content: `New milestone "${newMilestone.title}" has been added to your project timeline`,
+                isRead: false
+            });
+        } catch (err) {
+            console.log("Notification failed:", err);
+        }
+        
+        setNewMilestone({
+            title: "",
+            description: "",
+            dueDate: "",
+            status: "pending",
+            progress: 0
+        });
+        setShowModal(false);
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewMilestone({
+            ...newMilestone,
+            [name]: name === "progress" ? parseInt(value) : value
+        });
     };
 
     return (
@@ -141,11 +196,123 @@ const ProjectMilestoneTimeline = () => {
 
                 {/* Add Milestone Button */}
                 <div className="mt-8 flex justify-center">
-                    <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md">
+                    <button 
+                        onClick={() => setShowModal(true)}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md"
+                    >
                         <FaPlus size={16} />
                         Add New Milestone
                     </button>
                 </div>
+
+                {/* Modal */}
+                {showModal && (
+                    <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-xl">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6">Add New Milestone</h2>
+                            
+                            <form onSubmit={handleAddMilestone} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Title *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="title"
+                                        value={newMilestone.title}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter milestone title"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        name="description"
+                                        value={newMilestone.description}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter milestone description"
+                                        rows="3"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Due Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="dueDate"
+                                        value={newMilestone.dueDate}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Status
+                                    </label>
+                                    <select
+                                        name="status"
+                                        value={newMilestone.status}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    >
+                                        <option value="pending">Pending</option>
+                                        <option value="in-progress">In Progress</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Progress (%)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="progress"
+                                        value={newMilestone.progress}
+                                        onChange={handleInputChange}
+                                        min="0"
+                                        max="100"
+                                        placeholder="0"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    />
+                                </div>
+
+                                <div className="flex gap-4 pt-4">
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+                                    >
+                                        Add Milestone
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowModal(false);
+                                            setNewMilestone({
+                                                title: "",
+                                                description: "",
+                                                dueDate: "",
+                                                status: "pending",
+                                                progress: 0
+                                            });
+                                        }}
+                                        className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg hover:bg-gray-400 transition font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

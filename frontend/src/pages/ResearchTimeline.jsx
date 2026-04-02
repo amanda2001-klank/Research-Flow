@@ -1,4 +1,5 @@
 import { useState, useContext } from "react";
+import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import NotificationCenter from "../components/NotificationCenter";
 import { FaCalendarAlt, FaCheckCircle, FaClock, FaFlag, FaEdit, FaPlus } from "react-icons/fa";
@@ -72,6 +73,15 @@ const ResearchTimeline = () => {
         }
     ]);
 
+    const [showModal, setShowModal] = useState(false);
+    const [newEvent, setNewEvent] = useState({
+        title: "",
+        description: "",
+        date: "",
+        status: "upcoming",
+        priority: "medium"
+    });
+
     const getStatusColor = (status) => {
         switch (status) {
             case "completed":
@@ -103,6 +113,51 @@ const ResearchTimeline = () => {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
+        });
+    };
+
+    const handleAddEvent = async (e) => {
+        e.preventDefault();
+        
+        if (!newEvent.title || !newEvent.date) {
+            alert("Please fill in title and date");
+            return;
+        }
+
+        const event = {
+            id: events.length + 1,
+            ...newEvent
+        };
+
+        setEvents([...events, event]);
+        
+        // Create notification
+        try {
+            await axios.post("http://localhost:5000/api/notifications", {
+                recipient: user._id,
+                type: "system",
+                content: `New event "${newEvent.title}" has been added to your research timeline`,
+                isRead: false
+            });
+        } catch (err) {
+            console.log("Notification failed:", err);
+        }
+        
+        setNewEvent({
+            title: "",
+            description: "",
+            date: "",
+            status: "upcoming",
+            priority: "medium"
+        });
+        setShowModal(false);
+    };
+
+    const handleEventInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewEvent({
+            ...newEvent,
+            [name]: value
         });
     };
 
@@ -157,7 +212,10 @@ const ResearchTimeline = () => {
                 <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-bold text-gray-800">Timeline Events</h2>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        <button 
+                            onClick={() => setShowModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        >
                             <FaPlus size={16} /> Add Event
                         </button>
                     </div>
@@ -215,6 +273,115 @@ const ResearchTimeline = () => {
                         ))}
                     </div>
                 </div>
+
+                {/* Modal */}
+                {showModal && (
+                    <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-xl">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6">Add New Event</h2>
+                            
+                            <form onSubmit={handleAddEvent} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Title *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="title"
+                                        value={newEvent.title}
+                                        onChange={handleEventInputChange}
+                                        placeholder="Enter event title"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        name="description"
+                                        value={newEvent.description}
+                                        onChange={handleEventInputChange}
+                                        placeholder="Enter event description"
+                                        rows="3"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="date"
+                                        value={newEvent.date}
+                                        onChange={handleEventInputChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Status
+                                    </label>
+                                    <select
+                                        name="status"
+                                        value={newEvent.status}
+                                        onChange={handleEventInputChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    >
+                                        <option value="completed">Completed</option>
+                                        <option value="in-progress">In Progress</option>
+                                        <option value="upcoming">Upcoming</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Priority
+                                    </label>
+                                    <select
+                                        name="priority"
+                                        value={newEvent.priority}
+                                        onChange={handleEventInputChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    >
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex gap-4 pt-4">
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+                                    >
+                                        Add Event
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowModal(false);
+                                            setNewEvent({
+                                                title: "",
+                                                description: "",
+                                                date: "",
+                                                status: "upcoming",
+                                                priority: "medium"
+                                            });
+                                        }}
+                                        className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg hover:bg-gray-400 transition font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
