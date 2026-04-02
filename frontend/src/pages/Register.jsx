@@ -65,7 +65,7 @@ const Register = () => {
                         Start Your <br/> Academic Journey
                     </h1>
                     <p className="text-lg text-slate-200 max-w-lg font-light leading-relaxed drop-shadow-md">
-                        Join an elite community of passionate researchers and supervisors. Innovate, collaborate, and push the boundaries of knowledge.
+                        Join an elite community of passionate researchers and supervisors. and push the boundaries of knowledge.
                     </p>
                 </div>
             </div>

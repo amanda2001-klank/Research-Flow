@@ -51,7 +51,7 @@ const Login = () => {
                         Welcome to <br/> ResearchFlow
                     </h1>
                     <p className="text-lg text-slate-200 max-w-lg font-light leading-relaxed drop-shadow-md">
-                        Accelerating Academic Excellence. Connect, collaborate, and manage campus assets seamlessly in one integrated platform.
+                        Make research easy. Plan, track, and work together on projects in one place.
                     </p>
                 </div>
             </div>
