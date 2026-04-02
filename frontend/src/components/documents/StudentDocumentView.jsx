@@ -42,75 +42,318 @@ const StudentDocumentView = ({ user, groupId }) => {
 
     const downloadEvaluationReport = () => {
         if (!evaluation) return;
+        const data = evaluation;
         const pdf = new jsPDF({ unit: "pt", format: "a4" });
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
-        const left = 48;
-        const right = 48;
-        const maxTextWidth = pageWidth - left - right;
-        let y = 56;
+        const margin = 40;
+        const contentWidth = pageWidth - margin * 2;
+        const footerY = pageHeight - 24;
+        let y = 0;
+        let pageNo = 1;
+
+        const colors = {
+            primary: [47, 79, 79],
+            accent: [255, 215, 0],
+            text: [31, 41, 55],
+            muted: [107, 114, 128],
+            border: [226, 232, 240],
+            cardBg: [248, 250, 252],
+            white: [255, 255, 255],
+            green: [16, 185, 129],
+            amber: [245, 158, 11],
+            red: [239, 68, 68],
+        };
+
+        const asText = (value, fallback = "N/A") => {
+            if (value === undefined || value === null || value === "") return fallback;
+            return String(value);
+        };
+
+        const asNumberText = (value, digits = 1) => {
+            const num = Number(value);
+            if (!Number.isFinite(num)) return asText(value);
+            return num.toFixed(digits).replace(/\.0+$/, "");
+        };
+
+        const asDateText = (value) => {
+            const date = value ? new Date(value) : null;
+            if (!date || Number.isNaN(date.getTime())) return "N/A";
+            return date.toLocaleDateString();
+        };
+
+        const scoreColor = (score) => {
+            if (score >= 75) return colors.green;
+            if (score >= 50) return colors.amber;
+            return colors.red;
+        };
+
+        const drawCard = (x, top, width, height) => {
+            pdf.setFillColor(...colors.cardBg);
+            pdf.roundedRect(x, top, width, height, 10, 10, "F");
+            pdf.setDrawColor(...colors.border);
+            pdf.roundedRect(x, top, width, height, 10, 10, "S");
+        };
+
+        const drawFooter = () => {
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(9);
+            pdf.setTextColor(...colors.muted);
+            pdf.text(`Generated on ${new Date().toLocaleString()}`, margin, footerY);
+            pdf.text(`Page ${pageNo}`, pageWidth - margin, footerY, { align: "right" });
+        };
+
+        const drawCoverHeader = () => {
+            pdf.setFillColor(...colors.primary);
+            pdf.rect(0, 0, pageWidth, 118, "F");
+
+            pdf.setFillColor(...colors.accent);
+            pdf.rect(0, 110, pageWidth, 8, "F");
+
+            pdf.setTextColor(...colors.white);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(22);
+            pdf.text("Evaluation Progress Report", margin, 50);
+
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(12);
+            pdf.text(asText(data.documentTitle), margin, 74);
+
+            pdf.setFontSize(10);
+            pdf.text(`Document Type: ${asText(data.documentType)}`, margin, 94);
+            pdf.text(`Group: ${asText(data.groupId)}`, pageWidth - margin, 94, { align: "right" });
+
+            y = 146;
+        };
+
+        const drawPageHeader = () => {
+            pdf.setFillColor(...colors.cardBg);
+            pdf.rect(0, 0, pageWidth, 56, "F");
+
+            pdf.setDrawColor(...colors.border);
+            pdf.line(0, 56, pageWidth, 56);
+
+            pdf.setTextColor(...colors.primary);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(12);
+            pdf.text("Evaluation Progress Report", margin, 34);
+
+            pdf.setTextColor(...colors.muted);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(10);
+            pdf.text(asText(data.documentTitle), pageWidth - margin, 34, { align: "right" });
+
+            y = 76;
+        };
+
+        const addPage = () => {
+            drawFooter();
+            pdf.addPage();
+            pageNo += 1;
+            drawPageHeader();
+        };
 
         const ensureSpace = (needed = 20) => {
-            if (y + needed > pageHeight - 56) {
-                pdf.addPage();
-                y = 56;
+            if (y + needed > pageHeight - 44) {
+                addPage();
             }
         };
 
-        const writeLine = (text, size = 11, bold = false, gap = 16) => {
-            ensureSpace(gap);
-            pdf.setFont("helvetica", bold ? "bold" : "normal");
-            pdf.setFontSize(size);
-            pdf.text(String(text), left, y);
-            y += gap;
+        const writeSectionTitle = (title) => {
+            ensureSpace(32);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(14);
+            pdf.setTextColor(...colors.primary);
+            pdf.text(title, margin, y);
+
+            pdf.setDrawColor(...colors.accent);
+            pdf.setLineWidth(1.2);
+            pdf.line(margin, y + 8, margin + 132, y + 8);
+            y += 24;
         };
 
-        const writeParagraph = (text, size = 10, bold = false, gap = 14) => {
-            const lines = pdf.splitTextToSize(String(text), maxTextWidth);
-            pdf.setFont("helvetica", bold ? "bold" : "normal");
-            pdf.setFontSize(size);
-            lines.forEach((line) => {
-                ensureSpace(gap);
-                pdf.text(line, left, y);
-                y += gap;
+        drawCoverHeader();
+
+        writeSectionTitle("Report Summary");
+        const summary = [
+            { label: "Document", value: asText(data.documentTitle) },
+            { label: "Type", value: asText(data.documentType) },
+            { label: "Group", value: asText(data.groupId) },
+            { label: "Evaluator", value: asText(data.evaluator) },
+            { label: "Date", value: asDateText(data.evaluatedAt) },
+            { label: "Criteria Count", value: asText(Array.isArray(data.criteria) ? data.criteria.length : 0) },
+        ];
+
+        const colGap = 12;
+        const colWidth = (contentWidth - colGap) / 2;
+        const summaryBoxHeight = 56;
+
+        for (let i = 0; i < summary.length; i += 2) {
+            ensureSpace(summaryBoxHeight + 10);
+            [summary[i], summary[i + 1]].forEach((item, colIndex) => {
+                if (!item) return;
+                const x = margin + colIndex * (colWidth + colGap);
+                drawCard(x, y, colWidth, summaryBoxHeight);
+
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(9);
+                pdf.setTextColor(...colors.muted);
+                pdf.text(item.label, x + 12, y + 20);
+
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(11);
+                pdf.setTextColor(...colors.text);
+                const valueLines = pdf.splitTextToSize(item.value, colWidth - 24);
+                pdf.text(valueLines[0] || "N/A", x + 12, y + 40);
             });
-        };
-
-        writeLine("Evaluation Progress Report", 18, true, 24);
-        writeLine(`Document: ${evaluation.documentTitle}`, 11, false);
-        writeLine(`Type: ${evaluation.documentType}`, 11, false);
-        writeLine(`Group: ${evaluation.groupId}`, 11, false);
-        writeLine(`Evaluator: ${evaluation.evaluator}`, 11, false);
-        writeLine(`Date: ${new Date(evaluation.evaluatedAt).toLocaleDateString()}`, 11, false, 22);
-
-        writeLine("Rubric Scores", 13, true, 20);
-        evaluation.criteria?.forEach((criterion) => {
-            writeLine(`${criterion.name} (Weight: ${criterion.weight}%)`, 11, true);
-            writeLine(`Score: ${criterion.score}/100 | Weighted: ${(criterion.score * criterion.weight / 100).toFixed(1)}`, 10, false);
-            if (criterion.feedback) {
-                writeParagraph(`Feedback: ${criterion.feedback}`, 10, false);
-            }
-            y += 6;
-        });
-
-        writeLine(`Total Mark: ${evaluation.totalMark}/100`, 12, true, 22);
-
-        if (evaluation.generalFeedback) {
-            writeLine("General Feedback", 13, true, 20);
-            writeParagraph(evaluation.generalFeedback, 10, false);
-            y += 6;
+            y += summaryBoxHeight + 10;
         }
 
-        if (evaluation.individualMarks?.length > 0) {
-            writeLine("Individual Marks", 13, true, 20);
-            evaluation.individualMarks.forEach((item) => {
-                writeLine(`${item.studentName} (${item.studentId})`, 11, true);
-                writeLine(`Contribution: ${item.contribution}% | Mark: ${item.individualMark}`, 10, false);
-                y += 4;
+        writeSectionTitle("Rubric Scores");
+        const criteria = Array.isArray(data.criteria) ? data.criteria : [];
+
+        if (criteria.length === 0) {
+            ensureSpace(44);
+            drawCard(margin, y, contentWidth, 44);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(10);
+            pdf.setTextColor(...colors.muted);
+            pdf.text("No rubric criteria available.", margin + 14, y + 28);
+            y += 54;
+        } else {
+            criteria.forEach((criterion) => {
+                const score = Number(criterion.score) || 0;
+                const weight = Number(criterion.weight) || 0;
+                const weighted = ((score * weight) / 100).toFixed(1).replace(/\.0+$/, "");
+                const feedbackLines = criterion.feedback
+                    ? pdf.splitTextToSize(String(criterion.feedback), contentWidth - 28)
+                    : [];
+                const cardHeight = 74 + (feedbackLines.length ? 20 + feedbackLines.length * 12 : 0);
+
+                ensureSpace(cardHeight + 10);
+                drawCard(margin, y, contentWidth, cardHeight);
+
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(12);
+                pdf.setTextColor(...colors.text);
+                pdf.text(asText(criterion.name, "Criterion"), margin + 14, y + 24);
+
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(10);
+                pdf.setTextColor(...colors.muted);
+                pdf.text(`Weight ${asNumberText(weight)}%`, margin + 14, y + 42);
+
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(12);
+                pdf.setTextColor(...colors.primary);
+                pdf.text(`${asNumberText(score)}/100`, margin + contentWidth - 14, y + 24, { align: "right" });
+
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(10);
+                pdf.setTextColor(...colors.muted);
+                pdf.text(`Weighted ${weighted}`, margin + contentWidth - 14, y + 42, { align: "right" });
+
+                const barX = margin + 14;
+                const barY = y + 52;
+                const barWidth = contentWidth - 28;
+                const barHeight = 8;
+                const fillPercent = Math.max(0, Math.min(100, score));
+
+                pdf.setFillColor(229, 231, 235);
+                pdf.roundedRect(barX, barY, barWidth, barHeight, 4, 4, "F");
+                if (fillPercent > 0) {
+                    pdf.setFillColor(...scoreColor(fillPercent));
+                    pdf.roundedRect(barX, barY, (barWidth * fillPercent) / 100, barHeight, 4, 4, "F");
+                }
+
+                if (feedbackLines.length) {
+                    const feedbackY = y + 76;
+                    pdf.setFont("helvetica", "bold");
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(...colors.muted);
+                    pdf.text("Feedback", margin + 14, feedbackY);
+
+                    pdf.setFont("helvetica", "normal");
+                    pdf.setTextColor(...colors.text);
+                    feedbackLines.forEach((line, lineIndex) => {
+                        pdf.text(line, margin + 14, feedbackY + 16 + lineIndex * 12);
+                    });
+                }
+
+                y += cardHeight + 10;
             });
         }
 
-        const safeTitle = (evaluation.documentTitle || "Report").replace(/[^a-z0-9_\-\s]/gi, "").replace(/\s+/g, "_");
+        writeSectionTitle("Total Mark");
+        ensureSpace(86);
+        drawCard(margin, y, contentWidth, 76);
+
+        pdf.setFillColor(...colors.accent);
+        pdf.roundedRect(margin, y, 10, 76, 6, 6, "F");
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(10);
+        pdf.setTextColor(...colors.muted);
+        pdf.text("Final evaluation score", margin + 24, y + 28);
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(18);
+        pdf.setTextColor(...colors.primary);
+        pdf.text("Overall Performance", margin + 24, y + 50);
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(30);
+        pdf.setTextColor(...colors.text);
+        pdf.text(`${asNumberText(data.totalMark)}/100`, margin + contentWidth - 16, y + 50, { align: "right" });
+        y += 90;
+
+        if (data.generalFeedback) {
+            writeSectionTitle("General Feedback");
+            const feedbackLines = pdf.splitTextToSize(String(data.generalFeedback), contentWidth - 28);
+            const boxHeight = 34 + feedbackLines.length * 12;
+
+            ensureSpace(boxHeight + 10);
+            drawCard(margin, y, contentWidth, boxHeight);
+
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(10);
+            pdf.setTextColor(...colors.text);
+            feedbackLines.forEach((line, lineIndex) => {
+                pdf.text(line, margin + 14, y + 22 + lineIndex * 12);
+            });
+            y += boxHeight + 10;
+        }
+
+        const individualMarks = Array.isArray(data.individualMarks) ? data.individualMarks : [];
+        if (individualMarks.length > 0) {
+            writeSectionTitle("Individual Marks");
+
+            individualMarks.forEach((item) => {
+                ensureSpace(62);
+                drawCard(margin, y, contentWidth, 54);
+
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(11);
+                pdf.setTextColor(...colors.text);
+                pdf.text(`${asText(item.studentName)} (${asText(item.studentId)})`, margin + 14, y + 24);
+
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(10);
+                pdf.setTextColor(...colors.muted);
+                pdf.text(`Contribution: ${asText(item.contribution)}%`, margin + 14, y + 42);
+
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(11);
+                pdf.setTextColor(...colors.primary);
+                pdf.text(`Mark: ${asNumberText(item.individualMark)}`, margin + contentWidth - 14, y + 33, { align: "right" });
+
+                y += 62;
+            });
+        }
+
+        drawFooter();
+
+        const safeTitle = (data.documentTitle || "Report").replace(/[^a-z0-9_\-\s]/gi, "").replace(/\s+/g, "_");
         pdf.save(`Evaluation_${safeTitle}.pdf`);
     };
 
