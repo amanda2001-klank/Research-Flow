@@ -66,25 +66,24 @@ const ChatWindow = ({ chatWith }) => {
     }, [messages]);
 
     if (!chatWith) return (
-        <div className="flex-1 flex items-center justify-center bg-[#F8F9FA] text-gray-400 flex-col gap-4">
-            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-                <IoSend className="text-gray-400 transform -rotate-45 ml-1" size={24} />
+        <div className="flex-1 flex items-center justify-center text-gray-400 flex-col gap-4" style={{ backgroundColor: "#f5f5f5" }}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: "#e0e0e0" }}>
+                <IoSend className="transform -rotate-45 ml-1" size={24} style={{ color: "#999" }} />
             </div>
             <p>Select a channel or user to start chatting</p>
         </div>
     );
 
     return (
-        <div className="flex-1 flex flex-col bg-[#F8F9FA] relative">
+        <div className="flex-1 flex flex-col relative" style={{ backgroundColor: "#f5f5f5" }}>
             {/* Header */}
-            <div className="h-16 border-b border-gray-200 flex items-center px-6 justify-between bg-white shadow-sm z-10">
+            <div className="h-16 border-b flex items-center px-6 justify-between bg-white shadow-sm z-10" style={{ borderColor: "#ddd" }}>
                 <div className="flex items-center gap-3">
                     <span className="font-bold text-gray-800 text-lg"># {chatWith.role === 'student' ? 'general' : chatWith.username}</span>
-                    {/* {chatWith.role === 'student' && <span className="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded-full font-bold">STUDENT</span>} */}
                 </div>
                 <div className="flex items-center gap-4 text-gray-400">
-                    <FaSearch className="hover:text-gray-600 cursor-pointer" />
-                    <FaEllipsisV className="hover:text-gray-600 cursor-pointer" />
+                    <FaSearch className="hover:cursor-pointer" style={{ color: "#999" }} />
+                    <FaEllipsisV className="hover:cursor-pointer" style={{ color: "#999" }} />
                 </div>
             </div>
 
@@ -93,9 +92,9 @@ const ChatWindow = ({ chatWith }) => {
 
                 {/* Intro Message */}
                 <div className="flex items-center gap-4 mb-8 mt-4 justify-center">
-                    <div className="h-[1px] bg-gray-200 flex-1"></div>
+                    <div className="h-[1px] flex-1" style={{ backgroundColor: "#ddd" }}></div>
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Today</span>
-                    <div className="h-[1px] bg-gray-200 flex-1"></div>
+                    <div className="h-[1px] flex-1" style={{ backgroundColor: "#ddd" }}></div>
                 </div>
 
                 {messages.map((m, idx) => (
@@ -106,9 +105,9 @@ const ChatWindow = ({ chatWith }) => {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-white/50 backdrop-blur-sm border-t border-gray-200">
-                <div className="bg-white border border-gray-200 rounded-xl flex items-center p-2 shadow-sm focus-within:border-indigo-300 focus-within:ring-2 ring-indigo-50 transition-all">
-                    <button className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-50 transition">
+            <div className="p-4 border-t" style={{ backgroundColor: "rgba(255,255,255,0.5)", borderColor: "#ddd" }}>
+                <div className="bg-white border rounded-lg flex items-center p-2 shadow-sm transition-all" style={{ borderColor: "#ddd" }}>
+                    <button className="p-2 rounded-full hover:bg-gray-50 transition" style={{ color: "#999" }}>
                         <IoAttach size={20} />
                     </button>
                     <input
@@ -119,7 +118,8 @@ const ChatWindow = ({ chatWith }) => {
                         onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e)}
                     />
                     <button
-                        className="bg-[#2F4F4F] text-white p-2.5 rounded-lg hover:bg-[#253f3f] transition shadow-md"
+                        className="text-white p-2.5 rounded-lg hover:opacity-90 transition shadow-md"
+                        style={{ backgroundColor: "#E8A63A" }}
                         onClick={handleSubmit}
                         disabled={!newMessage.trim()}
                     >

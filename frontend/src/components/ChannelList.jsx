@@ -32,11 +32,11 @@ const ChannelList = ({ setChatWith, chatWith }) => {
     }, [user._id, user.role]);
 
     return (
-        <div className="w-80 bg-[#F8F9FA] border-r border-gray-200 flex flex-col font-sans">
+        <div className="w-80 border-r flex flex-col font-sans" style={{ backgroundColor: "#f8f8f8", borderColor: "#ddd" }}>
             <div className="p-6 pb-2">
-                <h3 className="text-gray-400 font-bold text-xs tracking-wider uppercase mb-4">Channels</h3>
-                <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-200 shadow-sm mb-4">
-                    <FaSearch className="text-gray-400" />
+                <h3 className="font-bold text-xs tracking-wider uppercase mb-4" style={{ color: "#999" }}>Channels</h3>
+                <div className="flex items-center gap-2 bg-white p-2 rounded-lg border shadow-sm mb-4" style={{ borderColor: "#ddd" }}>
+                    <FaSearch style={{ color: "#999" }} />
                     <input
                         placeholder="Search..."
                         className="bg-transparent focus:outline-none text-sm w-full"
@@ -47,20 +47,27 @@ const ChannelList = ({ setChatWith, chatWith }) => {
             <div className="flex-1 overflow-y-auto px-4">
                 <div className="mb-6">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-gray-500 font-bold text-sm"># General</span>
-                        <FaPlus className="text-gray-400 cursor-pointer hover:text-gray-600" size={12} />
+                        <span className="font-bold text-sm" style={{ color: "#666" }}>
+                            # General
+                        </span>
+                        <FaPlus className="cursor-pointer hover:opacity-70" style={{ color: "#999" }} size={12} />
                     </div>
                     {users.map((u) => (
                         <div
                             key={u._id}
                             onClick={() => setChatWith(u)}
-                            className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition mb-1
-                            ${chatWith?._id === u._id
-                                    ? "bg-white shadow-sm border border-gray-100"
-                                    : "hover:bg-gray-100"}`}
+                            className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition mb-1`}
+                            style={{
+                                backgroundColor: chatWith?._id === u._id ? "#fff" : "transparent",
+                                border: chatWith?._id === u._id ? "1px solid #ddd" : "none"
+                            }}
                         >
-                            <span className={`w-2 h-2 rounded-full ${u.isOnline ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                            <span className={`text-sm font-medium ${chatWith?._id === u._id ? "text-gray-800" : "text-gray-600"}`}>
+                            <span className={`w-2 h-2 rounded-full`} style={{
+                                backgroundColor: u.isOnline ? "#27a745" : "#bbb"
+                            }}></span>
+                            <span className={`text-sm font-medium`} style={{
+                                color: chatWith?._id === u._id ? "#333" : "#666"
+                            }}>
                                 # {u.username}
                             </span>
                         </div>

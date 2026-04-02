@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { FaGraduationCap, FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory } from "react-icons/fa";
+import { FaGraduationCap, FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory, FaFlask } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 
 const Sidebar = ({ view, setView }) => {
@@ -34,6 +34,7 @@ const Sidebar = ({ view, setView }) => {
             // Student
             return [
                 { name: "Student Home", icon: <FaHome size={20} /> },
+                { name: "Research Ideas", icon: <FaFlask size={20} /> },
                 { name: "Project Milestones", icon: <FaChartLine size={20} /> },
                 { name: "Research Timeline", icon: <FaHistory size={20} /> },
                 { name: "Plagiarism Checker", icon: <FaShieldAlt size={20} /> },

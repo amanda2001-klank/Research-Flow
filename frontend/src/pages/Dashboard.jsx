@@ -22,6 +22,7 @@ import StudentHome from "./StudentHome";
 import ProjectMilestoneTimeline from "./ProjectMilestoneTimeline";
 import PlagiarismChecker from "./PlagiarismChecker";
 import ResearchTimeline from "./ResearchTimeline";
+import ResearchIdeas from "./ResearchIdeas";
 
 const Dashboard = () => {
     const [chatWith, setChatWith] = useState(null);
@@ -500,6 +501,9 @@ const Dashboard = () => {
 
             case 'Research Timeline':
                 return <ResearchTimeline />;
+
+            case 'Research Ideas':
+                return <ResearchIdeas />;
 
             default:
                 return (
