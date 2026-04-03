@@ -10,6 +10,18 @@ const documentVersionSchema = new mongoose.Schema({
     comments: { type: String, default: '' }
 });
 
+const feedbackActionSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    status: {
+        type: String,
+        enum: ['open', 'resolved'],
+        default: 'open'
+    },
+    resolutionNote: { type: String, default: '' },
+    resolvedBy: { type: String, default: '' },
+    resolvedAt: { type: Date, default: null }
+}, { timestamps: true });
+
 const documentSchema = new mongoose.Schema({
     groupId: { type: String, required: true },
     sponsorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // Supervisor who has access
@@ -30,7 +42,8 @@ const documentSchema = new mongoose.Schema({
     },
     revisionRequestNote: { type: String, default: '' },
     revisionRequestedBy: { type: String, default: '' },
-    revisionRequestedAt: { type: Date, default: null }
+    revisionRequestedAt: { type: Date, default: null },
+    feedbackActions: [feedbackActionSchema]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Document', documentSchema);
