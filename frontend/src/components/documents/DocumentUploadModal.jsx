@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FaUpload, FaTimes, FaFile } from "react-icons/fa";
 
 const API = "http://localhost:5000/api";
@@ -11,8 +11,60 @@ const DocumentUploadModal = ({ groupId, user, existingDoc, onClose, onSuccess })
     const [comments, setComments] = useState('');
     const [uploading, setUploading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
+    const [rules, setRules] = useState(null);
+    const [loadingRules, setLoadingRules] = useState(false);
+    const [submitErrors, setSubmitErrors] = useState([]);
 
     const isNewVersion = !!existingDoc;
+    const effectiveGroupId = existingDoc?.groupId || groupId;
+
+    useEffect(() => {
+        const fetchRules = async () => {
+            if (!effectiveGroupId) {
+                setRules(null);
+                return;
+            }
+
+            try {
+                setLoadingRules(true);
+                const res = await fetch(`${API}/documents/rules/${effectiveGroupId}`);
+                if (!res.ok) throw new Error('Failed to load rules');
+                const data = await res.json();
+                setRules(data);
+            } catch (err) {
+                console.error(err);
+                setRules(null);
+            }
+            setLoadingRules(false);
+        };
+
+        fetchRules();
+    }, [effectiveGroupId]);
+
+    const activeRule = useMemo(() => {
+        const type = isNewVersion ? existingDoc?.documentType : documentType;
+        return rules?.milestones?.find((m) => m.documentType === type) || null;
+    }, [rules, isNewVersion, existingDoc, documentType]);
+
+    const formatDueDate = (value) => {
+        if (!value) return 'No due date';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'No due date';
+        return date.toLocaleDateString();
+    };
+
+    const parseErrorResponse = async (res) => {
+        try {
+            const payload = await res.json();
+            if (Array.isArray(payload?.details) && payload.details.length > 0) {
+                return payload.details;
+            }
+            if (payload?.error) return [payload.error];
+        } catch (err) {
+            // ignore parse errors and fall back to generic
+        }
+        return ['Upload failed. Please try again.'];
+    };
 
     const handleDrag = (e) => {
         e.preventDefault();
@@ -32,6 +84,8 @@ const DocumentUploadModal = ({ groupId, user, existingDoc, onClose, onSuccess })
         e.preventDefault();
         if (!file) return alert("Please select a file");
         setUploading(true);
+        setSubmitErrors([]);
+        let apiErrors = [];
 
         try {
             const formData = new FormData();
@@ -44,7 +98,10 @@ const DocumentUploadModal = ({ groupId, user, existingDoc, onClose, onSuccess })
                     method: 'POST',
                     body: formData
                 });
-                if (!res.ok) throw new Error('Upload failed');
+                if (!res.ok) {
+                    apiErrors = await parseErrorResponse(res);
+                    throw new Error('Upload failed');
+                }
             } else {
                 formData.append('groupId', groupId);
                 formData.append('title', title);
@@ -55,13 +112,16 @@ const DocumentUploadModal = ({ groupId, user, existingDoc, onClose, onSuccess })
                     method: 'POST',
                     body: formData
                 });
-                if (!res.ok) throw new Error('Upload failed');
+                if (!res.ok) {
+                    apiErrors = await parseErrorResponse(res);
+                    throw new Error('Upload failed');
+                }
             }
 
             onSuccess();
         } catch (err) {
             console.error(err);
-            alert("Upload failed. Please try again.");
+            setSubmitErrors(apiErrors.length > 0 ? apiErrors : ['Upload failed. Please try again.']);
         }
         setUploading(false);
     };
@@ -124,6 +184,24 @@ const DocumentUploadModal = ({ groupId, user, existingDoc, onClose, onSuccess })
                         </>
                     )}
 
+                    {/* Submission Rule Hint */}
+                    {loadingRules ? (
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                            <p className="text-xs text-gray-500">Loading submission rules...</p>
+                        </div>
+                    ) : activeRule ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                            <p className="text-xs font-semibold text-amber-800">Submission Rule: {activeRule.title}</p>
+                            <div className="text-xs text-amber-700 mt-1 space-y-0.5">
+                                <p>Due: {formatDueDate(activeRule.dueDate)} {activeRule.enforceDeadline ? '(strict)' : '(soft)'}</p>
+                                <p>Allowed types: {(activeRule.allowedExtensions || []).join(', ') || 'any'}</p>
+                                <p>Max file size: {activeRule.maxSizeMb || 50} MB</p>
+                                {!isNewVersion && <p>Min description: {activeRule.minDescriptionLength || 0} chars</p>}
+                                {isNewVersion && activeRule.requiresVersionNotes && <p>Version notes are required.</p>}
+                            </div>
+                        </div>
+                    ) : null}
+
                     {/* Version comments (for updates) */}
                     {isNewVersion && (
                         <div>
@@ -181,6 +259,14 @@ const DocumentUploadModal = ({ groupId, user, existingDoc, onClose, onSuccess })
                     >
                         {uploading ? 'Uploading...' : (isNewVersion ? `Upload Version ${(existingDoc.currentVersion || 0) + 1}` : 'Upload Document')}
                     </button>
+
+                    {submitErrors.length > 0 && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-1">
+                            {submitErrors.map((error, index) => (
+                                <p key={index} className="text-xs text-red-700">• {error}</p>
+                            ))}
+                        </div>
+                    )}
                 </form>
             </div>
         </div>

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { FaFileAlt, FaDownload, FaCheckCircle, FaHistory, FaSearch, FaFilter } from "react-icons/fa";
+import { FaFileAlt, FaDownload, FaCheckCircle, FaHistory, FaSearch, FaExchangeAlt, FaCog } from "react-icons/fa";
 import jsPDF from "jspdf";
 import RubricEvaluationModal from "./RubricEvaluationModal";
+import VersionCompareModal from "./VersionCompareModal";
+import RuleManagerModal from "./RuleManagerModal";
 
 const API = "http://localhost:5000/api";
 
@@ -16,9 +18,13 @@ const SupervisorDocumentView = ({ user }) => {
     const [showRevisionModal, setShowRevisionModal] = useState(false);
     const [revisionDoc, setRevisionDoc] = useState(null);
     const [revisionNote, setRevisionNote] = useState('');
+    const [revisionActionsText, setRevisionActionsText] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('All');
     const [filterStatus, setFilterStatus] = useState('All');
+    const [compareDoc, setCompareDoc] = useState(null);
+    const [showRuleManager, setShowRuleManager] = useState(false);
+    const [ruleGroupId, setRuleGroupId] = useState('');
 
     const fetchDocuments = async () => {
         try {
@@ -70,18 +76,31 @@ const SupervisorDocumentView = ({ user }) => {
     const openRevisionModal = (doc) => {
         setRevisionDoc(doc);
         setRevisionNote(doc?.revisionRequestNote || '');
+        setRevisionActionsText((doc?.feedbackActions || []).map((item) => item.title).join('\n'));
         setShowRevisionModal(true);
     };
 
     const submitRevisionRequest = async () => {
         if (!revisionDoc?._id) return;
+        const revisionActions = revisionActionsText
+            .split('\n')
+            .map((item) => item.trim())
+            .filter(Boolean);
+
         await updateDocStatus(revisionDoc._id, 'Revision Requested', {
             revisionNote,
+            revisionActions,
             requestedBy: user?.fullName || user?.username || 'Sponsor'
         });
         setShowRevisionModal(false);
         setRevisionDoc(null);
         setRevisionNote('');
+        setRevisionActionsText('');
+    };
+
+    const openRuleManager = (groupId) => {
+        setRuleGroupId(groupId);
+        setShowRuleManager(true);
     };
 
     const openEvaluationSummary = async (docId) => {
@@ -499,6 +518,12 @@ const SupervisorDocumentView = ({ user }) => {
                                 </div>
                                 <h2 className="text-lg font-bold text-gray-800">Group: {gId}</h2>
                                 <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{docs.length} document(s)</span>
+                                <button
+                                    onClick={() => openRuleManager(gId)}
+                                    className="ml-auto text-xs flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#2F4F4F]/10 text-[#2F4F4F] hover:bg-[#2F4F4F]/20 transition"
+                                >
+                                    <FaCog size={11} /> Rules
+                                </button>
                             </div>
 
                             <div className="space-y-3">
@@ -522,6 +547,14 @@ const SupervisorDocumentView = ({ user }) => {
                                                 >
                                                     <FaHistory size={13} /> History
                                                 </button>
+                                                {doc.versions?.length > 1 && (
+                                                    <button
+                                                        onClick={() => setCompareDoc(doc)}
+                                                        className="text-sm text-indigo-600 hover:text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition flex items-center gap-1"
+                                                    >
+                                                        <FaExchangeAlt size={13} /> Compare
+                                                    </button>
+                                                )}
                                                 {doc.versions?.length > 0 && (
                                                     <a
                                                         href={`http://localhost:5000${doc.versions[doc.versions.length - 1].fileUrl}`}
@@ -564,6 +597,12 @@ const SupervisorDocumentView = ({ user }) => {
                                                 )}
                                             </div>
                                         </div>
+
+                                        {doc.feedbackActions?.length > 0 && (
+                                            <div className="mt-3 bg-amber-50 border border-amber-100 rounded-lg p-2.5 text-xs text-amber-800">
+                                                Feedback action progress: {doc.feedbackActions.filter((item) => item.status === 'resolved').length}/{doc.feedbackActions.length} resolved
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -641,6 +680,15 @@ const SupervisorDocumentView = ({ user }) => {
                                 placeholder="Explain what should be improved before resubmission..."
                                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#2F4F4F] resize-none"
                             />
+
+                            <label className="block text-sm font-medium text-gray-700 mt-4 mb-2">Action items (one per line)</label>
+                            <textarea
+                                rows={4}
+                                value={revisionActionsText}
+                                onChange={(e) => setRevisionActionsText(e.target.value)}
+                                placeholder="Example:\nUpdate literature review references\nClarify methodology sample size"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#2F4F4F] resize-none"
+                            />
                         </div>
 
                         <div className="p-4 border-t border-gray-100 flex items-center justify-end gap-3">
@@ -659,6 +707,22 @@ const SupervisorDocumentView = ({ user }) => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {compareDoc && (
+                <VersionCompareModal
+                    doc={compareDoc}
+                    onClose={() => setCompareDoc(null)}
+                />
+            )}
+
+            {showRuleManager && ruleGroupId && (
+                <RuleManagerModal
+                    groupId={ruleGroupId}
+                    user={user}
+                    onClose={() => { setShowRuleManager(false); setRuleGroupId(''); }}
+                    onSaved={() => fetchDocuments()}
+                />
             )}
 
             {/* Evaluation Summary Modal (Sponsor) */}

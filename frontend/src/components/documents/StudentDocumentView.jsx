@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { FaUpload, FaFileAlt, FaHistory, FaDownload, FaStar, FaPlus, FaEye } from "react-icons/fa";
+import { FaUpload, FaFileAlt, FaHistory, FaDownload, FaStar, FaPlus, FaExchangeAlt, FaTrash, FaChevronDown, FaChevronRight } from "react-icons/fa";
 import jsPDF from "jspdf";
 import DocumentUploadModal from "./DocumentUploadModal";
+import MilestoneChecklistPanel from "./MilestoneChecklistPanel";
+import VersionCompareModal from "./VersionCompareModal";
 
 const API = "http://localhost:5000/api";
 
@@ -13,6 +15,10 @@ const StudentDocumentView = ({ user, groupId }) => {
     const [showVersions, setShowVersions] = useState(false);
     const [evaluation, setEvaluation] = useState(null);
     const [showEvaluation, setShowEvaluation] = useState(false);
+    const [compareDoc, setCompareDoc] = useState(null);
+    const [updatingActionId, setUpdatingActionId] = useState('');
+    const [checklistRefreshSignal, setChecklistRefreshSignal] = useState(0);
+    const [expandedTypeTabs, setExpandedTypeTabs] = useState({});
 
     const fetchDocuments = async () => {
         if (!groupId) { setLoading(false); return; }
@@ -38,6 +44,62 @@ const StudentDocumentView = ({ user, groupId }) => {
                 alert("No evaluation found for this document yet.");
             }
         } catch (err) { console.error(err); }
+    };
+
+    const updateFeedbackAction = async (docId, action) => {
+        if (!action?._id) return;
+
+        const nextStatus = action.status === 'resolved' ? 'open' : 'resolved';
+        const resolutionNote = nextStatus === 'resolved'
+            ? (window.prompt('Add a quick resolution note (optional):', action.resolutionNote || '') || '')
+            : '';
+
+        setUpdatingActionId(action._id);
+        try {
+            const res = await fetch(`${API}/documents/${docId}/feedback-actions/${action._id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: nextStatus,
+                    resolutionNote,
+                    resolvedBy: user?.fullName || user?.username || 'student'
+                })
+            });
+
+            if (!res.ok) throw new Error('Failed to update feedback action');
+            const data = await res.json();
+
+            setDocuments((prev) => prev.map((doc) => (
+                doc._id === docId ? { ...doc, feedbackActions: data.feedbackActions } : doc
+            )));
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update feedback action. Please try again.');
+        }
+        setUpdatingActionId('');
+    };
+
+    const deleteDocument = async (doc) => {
+        if (!doc?._id) return;
+
+        const shouldDelete = window.confirm(
+            `Delete "${doc.title}"? This will remove it from both student and sponsor views.`
+        );
+        if (!shouldDelete) return;
+
+        try {
+            const res = await fetch(`${API}/documents/${doc._id}`, { method: 'DELETE' });
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(payload?.error || 'Failed to delete document');
+            }
+
+            setDocuments((prev) => prev.filter((item) => item._id !== doc._id));
+            setChecklistRefreshSignal((prev) => prev + 1);
+        } catch (err) {
+            console.error(err);
+            alert(err.message || 'Failed to delete document.');
+        }
     };
 
     const downloadEvaluationReport = () => {
@@ -393,6 +455,41 @@ const StudentDocumentView = ({ user, groupId }) => {
         }
     };
 
+    const documentTypeOrder = ['Proposal', 'Progress Report', 'Final Report', 'Presentation', 'Other'];
+    const groupedByType = documents.reduce((acc, doc) => {
+        const type = doc.documentType || 'Other';
+        if (!acc[type]) acc[type] = [];
+        acc[type].push(doc);
+        return acc;
+    }, {});
+
+    const sortedTypes = [
+        ...documentTypeOrder.filter((type) => groupedByType[type]),
+        ...Object.keys(groupedByType)
+            .filter((type) => !documentTypeOrder.includes(type))
+            .sort()
+    ];
+
+    const groupedDocuments = sortedTypes.map((type) => ({
+        type,
+        docs: [...groupedByType[type]].sort((a, b) => {
+            const byVersion = (Number(b.currentVersion) || 0) - (Number(a.currentVersion) || 0);
+            if (byVersion !== 0) return byVersion;
+            return new Date(b.updatedAt) - new Date(a.updatedAt);
+        })
+    }));
+
+    const totalVersions = documents.reduce((sum, doc) => sum + (doc.versions?.length || 0), 0);
+
+    const isTabExpanded = (type) => expandedTypeTabs[type] !== false;
+
+    const toggleTypeTab = (type) => {
+        setExpandedTypeTabs((prev) => ({
+            ...prev,
+            [type]: !(prev[type] !== false)
+        }));
+    };
+
     return (
         <div className="flex-1 p-8 overflow-y-auto bg-gray-50">
             <div className="max-w-5xl mx-auto">
@@ -426,6 +523,22 @@ const StudentDocumentView = ({ user, groupId }) => {
                     ))}
                 </div>
 
+                <MilestoneChecklistPanel groupId={groupId} refreshSignal={checklistRefreshSignal} />
+
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-800">Previous Documents & Upload History</h3>
+                            <p className="text-sm text-gray-500">
+                                Similar documents are grouped by type. Expand each tab to view uploads sorted by version.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                            <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">Uploads: {documents.length}</span>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Document List */}
                 {loading ? (
                     <div className="text-center py-20 text-gray-400">Loading documents...</div>
@@ -443,76 +556,167 @@ const StudentDocumentView = ({ user, groupId }) => {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {documents.map((doc) => (
-                            <div key={doc._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-2xl">
-                                            {getTypeIcon(doc.documentType)}
+                        {groupedDocuments.map((group) => (
+                            <div key={group.type} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <button
+                                    onClick={() => toggleTypeTab(group.type)}
+                                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-gray-400">
+                                            {isTabExpanded(group.type) ? <FaChevronDown size={13} /> : <FaChevronRight size={13} />}
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-gray-800 text-lg">{doc.title}</h3>
-                                            <div className="flex items-center gap-3 mt-1">
-                                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{doc.documentType}</span>
-                                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusColor(doc.status)}`}>
-                                                    {doc.status}
-                                                </span>
-                                                <span className="text-xs text-gray-400">v{doc.currentVersion}</span>
-                                            </div>
-                                            {doc.description && <p className="text-sm text-gray-500 mt-2">{doc.description}</p>}
-                                            {doc.status === 'Revision Requested' && doc.revisionRequestNote && (
-                                                <div className="mt-3 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                                                    <p className="text-xs font-semibold text-red-700">Revision note from sponsor</p>
-                                                    <p className="text-sm text-red-700 mt-1">{doc.revisionRequestNote}</p>
+                                        <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center text-lg">
+                                            {getTypeIcon(group.type)}
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-semibold text-gray-800">{group.type}</p>
+                                            <p className="text-xs text-gray-500">{group.docs.length} document(s), ordered by latest version</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs bg-[#2F4F4F]/10 text-[#2F4F4F] px-2.5 py-1 rounded-full font-medium">
+                                        Top Version v{group.docs[0]?.currentVersion || 1}
+                                    </span>
+                                </button>
+
+                                {isTabExpanded(group.type) && (
+                                    <div className="border-t border-gray-100 p-4 md:p-5 space-y-3">
+                                        {group.docs.map((doc) => (
+                                            <div key={doc._id} className="rounded-xl border border-gray-100 bg-gray-50/60 p-5 hover:shadow-sm transition-all">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="w-11 h-11 bg-white rounded-xl border border-gray-100 flex items-center justify-center text-xl">
+                                                            {getTypeIcon(doc.documentType)}
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-gray-800 text-lg">{doc.title}</h3>
+                                                            <div className="flex items-center gap-3 mt-1">
+                                                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{doc.documentType}</span>
+                                                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusColor(doc.status)}`}>
+                                                                    {doc.status}
+                                                                </span>
+                                                                <span className="text-xs text-gray-400">v{doc.currentVersion}</span>
+                                                            </div>
+                                                            {doc.description && <p className="text-sm text-gray-500 mt-2">{doc.description}</p>}
+                                                            {doc.status === 'Revision Requested' && doc.revisionRequestNote && (
+                                                                <div className="mt-3 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                                                                    <p className="text-xs font-semibold text-red-700">Revision note from sponsor</p>
+                                                                    <p className="text-sm text-red-700 mt-1">{doc.revisionRequestNote}</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => { setSelectedDoc(doc); setShowVersions(true); }}
+                                                            className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#2F4F4F] px-3 py-1.5 rounded-lg hover:bg-gray-100 transition"
+                                                            title="View version history"
+                                                        >
+                                                            <FaHistory size={14} />
+                                                            <span>History</span>
+                                                        </button>
+                                                        {doc.versions?.length > 1 && (
+                                                            <button
+                                                                onClick={() => setCompareDoc(doc)}
+                                                                className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition"
+                                                                title="Compare versions"
+                                                            >
+                                                                <FaExchangeAlt size={13} />
+                                                                <span>Compare</span>
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => { setSelectedDoc(doc); setShowUpload(true); }}
+                                                            className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#2F4F4F] px-3 py-1.5 rounded-lg hover:bg-gray-100 transition"
+                                                            title="Upload new version"
+                                                        >
+                                                            <FaUpload size={14} />
+                                                            <span>Update</span>
+                                                        </button>
+                                                        {doc.status === 'Evaluated' && (
+                                                            <button
+                                                                onClick={() => fetchEvaluation(doc._id)}
+                                                                className="flex items-center gap-1 text-sm text-green-600 hover:text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-50 transition"
+                                                                title="View evaluation"
+                                                            >
+                                                                <FaStar size={14} />
+                                                                <span>Grade</span>
+                                                            </button>
+                                                        )}
+                                                        {doc.versions?.length > 0 && (
+                                                            <a
+                                                                href={`http://localhost:5000${doc.versions[doc.versions.length - 1].fileUrl}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition"
+                                                                title="Download latest"
+                                                            >
+                                                                <FaDownload size={14} />
+                                                            </a>
+                                                        )}
+                                                        {doc.status !== 'Evaluated' && (
+                                                            <button
+                                                                onClick={() => deleteDocument(doc)}
+                                                                className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition"
+                                                                title="Delete document"
+                                                            >
+                                                                <FaTrash size={13} />
+                                                                <span>Delete</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
+
+                                                {doc.feedbackActions?.length > 0 && (
+                                                    <div className="mt-3 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <p className="text-xs font-semibold text-amber-800">Feedback Resolution Tracker</p>
+                                                            <p className="text-xs text-amber-700">
+                                                                {doc.feedbackActions.filter((a) => a.status === 'resolved').length}/{doc.feedbackActions.length} resolved
+                                                            </p>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            {doc.feedbackActions.map((action) => (
+                                                                <div key={action._id} className="flex items-start justify-between gap-2 bg-white border border-amber-100 rounded-lg p-2.5">
+                                                                    <div>
+                                                                        <p className={`text-sm ${action.status === 'resolved' ? 'text-green-700 line-through' : 'text-gray-700'}`}>
+                                                                            {action.title}
+                                                                        </p>
+                                                                        {action.status === 'resolved' && action.resolvedBy && (
+                                                                            <p className="text-xs text-green-600 mt-0.5">
+                                                                                Resolved by {action.resolvedBy}
+                                                                                {action.resolutionNote ? ` - ${action.resolutionNote}` : ''}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => updateFeedbackAction(doc._id, action)}
+                                                                        disabled={updatingActionId === action._id}
+                                                                        className={`text-xs px-2.5 py-1 rounded-full border transition ${action.status === 'resolved'
+                                                                            ? 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                                                                            : 'border-green-300 text-green-700 hover:bg-green-50'}`}
+                                                                    >
+                                                                        {updatingActionId === action._id
+                                                                            ? 'Saving...'
+                                                                            : action.status === 'resolved'
+                                                                                ? 'Mark Open'
+                                                                                : 'Mark Resolved'}
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4 text-xs text-gray-400">
+                                                    <span>Uploaded by: {doc.uploadedBy}</span>
+                                                    <span>Updated: {new Date(doc.updatedAt).toLocaleDateString()}</span>
+                                                    <span>{doc.versions?.length || 0} version(s)</span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => { setSelectedDoc(doc); setShowVersions(true); }}
-                                            className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#2F4F4F] px-3 py-1.5 rounded-lg hover:bg-gray-100 transition"
-                                            title="View version history"
-                                        >
-                                            <FaHistory size={14} />
-                                            <span>History</span>
-                                        </button>
-                                        <button
-                                            onClick={() => { setSelectedDoc(doc); setShowUpload(true); }}
-                                            className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#2F4F4F] px-3 py-1.5 rounded-lg hover:bg-gray-100 transition"
-                                            title="Upload new version"
-                                        >
-                                            <FaUpload size={14} />
-                                            <span>Update</span>
-                                        </button>
-                                        {doc.status === 'Evaluated' && (
-                                            <button
-                                                onClick={() => fetchEvaluation(doc._id)}
-                                                className="flex items-center gap-1 text-sm text-green-600 hover:text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-50 transition"
-                                                title="View evaluation"
-                                            >
-                                                <FaStar size={14} />
-                                                <span>Grade</span>
-                                            </button>
-                                        )}
-                                        {doc.versions?.length > 0 && (
-                                            <a
-                                                href={`http://localhost:5000${doc.versions[doc.versions.length - 1].fileUrl}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition"
-                                                title="Download latest"
-                                            >
-                                                <FaDownload size={14} />
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="mt-3 pt-3 border-t border-gray-50 flex items-center gap-4 text-xs text-gray-400">
-                                    <span>Uploaded by: {doc.uploadedBy}</span>
-                                    <span>Updated: {new Date(doc.updatedAt).toLocaleDateString()}</span>
-                                    <span>{doc.versions?.length || 0} version(s)</span>
-                                </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -526,7 +730,12 @@ const StudentDocumentView = ({ user, groupId }) => {
                     user={user}
                     existingDoc={selectedDoc}
                     onClose={() => { setShowUpload(false); setSelectedDoc(null); }}
-                    onSuccess={() => { setShowUpload(false); setSelectedDoc(null); fetchDocuments(); }}
+                    onSuccess={() => {
+                        setShowUpload(false);
+                        setSelectedDoc(null);
+                        fetchDocuments();
+                        setChecklistRefreshSignal((prev) => prev + 1);
+                    }}
                 />
             )}
 
@@ -565,7 +774,17 @@ const StudentDocumentView = ({ user, groupId }) => {
                                 </div>
                             ))}
                         </div>
-                        <div className="p-4 border-t border-gray-100 flex justify-end">
+                        <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+                            <button
+                                onClick={() => setCompareDoc(selectedDoc)}
+                                disabled={(selectedDoc?.versions?.length || 0) < 2}
+                                className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition ${(selectedDoc?.versions?.length || 0) < 2
+                                    ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                                    : 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50'}`}
+                            >
+                                <FaExchangeAlt size={13} />
+                                Compare Versions
+                            </button>
                             <button
                                 onClick={() => setShowVersions(false)}
                                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition"
@@ -575,6 +794,13 @@ const StudentDocumentView = ({ user, groupId }) => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {compareDoc && (
+                <VersionCompareModal
+                    doc={compareDoc}
+                    onClose={() => setCompareDoc(null)}
+                />
             )}
 
             {/* Evaluation View Modal */}
