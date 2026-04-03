@@ -95,7 +95,7 @@ const Sidebar = ({ view, setView }) => {
                     </div>
                     <div className="flex flex-col">
                         <span className="text-white text-sm font-semibold">{user?.fullName || user?.username}</span>
-                        <span className="text-xs text-gray-400">ID: 2026-RF-02</span>
+                        <span className="text-xs text-gray-400">{user?.email}</span>
                     </div>
                 </div>
 

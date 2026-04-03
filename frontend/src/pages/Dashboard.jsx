@@ -126,9 +126,9 @@ const Dashboard = () => {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <div className="mb-2" style={{ color: "#E8A63A" }}>
-                                                <span className="text-sm font-semibold tracking-widest">● SPONSOR PANEL</span>
+                                                <span className="text-sm font-semibold tracking-widest">● SUPERVISOR PANEL</span>
                                             </div>
-                                            <h1 className="text-4xl font-bold text-white mb-2">Sponsor Dashboard</h1>
+                                            <h1 className="text-4xl font-bold text-white mb-2">Supervisor Dashboard</h1>
                                             <p className="text-gray-300">Review student work, manage cycles, and provide feedback</p>
                                         </div>
                                         <NotificationCenter />
@@ -205,7 +205,7 @@ const Dashboard = () => {
                                         {/* Sponsor Toolkit */}
                                         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                                             <div className="mb-6">
-                                                <h2 className="text-xl font-bold text-gray-800">Sponsor Toolkit</h2>
+                                                <h2 className="text-xl font-bold text-gray-800">Supervisor Toolkit</h2>
                                                 <p className="text-gray-600 text-sm mt-1">The most used actions for this role</p>
                                             </div>
 

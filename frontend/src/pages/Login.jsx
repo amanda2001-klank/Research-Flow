@@ -35,145 +35,145 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden bg-[#E2E8F0]">
-            {/* Top Dark Wave/Curve Section */}
-            <div
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-[450px] bg-[#2F4F4F] shadow-2xl z-0"
-                style={{ borderRadius: '0 0 50% 50%' }}
-            ></div>
-
-            {/* Subtle SVG Node/Network Pattern Over Bottom Section */}
-            <div
-                className="absolute inset-x-0 bottom-0 top-[400px] z-0 opacity-[0.05]"
-                style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10L90 90M90 10L10 90' stroke='%232F4F4F' stroke-width='0.5' fill='none'/%3E%3Ccircle cx='10' cy='10' r='1' fill='%232F4F4F'/%3E%3Ccircle cx='90' cy='90' r='1' fill='%232F4F4F'/%3E%3Ccircle cx='90' cy='10' r='1' fill='%232F4F4F'/%3E%3Ccircle cx='10' cy='90' r='1' fill='%232F4F4F'/%3E%3Ccircle cx='50' cy='50' r='1.5' fill='%232F4F4F'/%3E%3C/svg%3E")`,
-                    backgroundSize: '150px 150px'
-                }}
-            ></div>
-
-            {/* Login Card Container */}
-            <div className="relative z-10 w-full max-w-md px-4 mt-12">
-                {/* Logo and Title Section */}
-                <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-xl mb-4">
-                        <FaGraduationCap className="text-[#2F4F4F] text-3xl" />
-                    </div>
-                    <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">ResearchFlow</h1>
-                    <p className="text-gray-300 text-sm">Accelerating Academic Excellence</p>
+        <div className="min-h-screen w-full flex bg-slate-50 font-sans overflow-hidden relative">
+            {/* Left Side - Image Showcase */}
+            <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-[#2F4F4F]">
+                <img
+                    src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80"
+                    alt="University Campus"
+                    className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay transition-transform duration-[20s] hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0f1f1f] via-[#2F4F4F]/40 to-transparent"></div>
+                
+                <div className="absolute bottom-12 left-12 right-12 text-white z-10">
+                    <div className="w-12 h-1 bg-[#FFD700] mb-6 rounded-full shadow-[0_0_15px_rgba(255,215,0,0.6)]"></div>
+                    <h1 className="text-4xl xl:text-5xl font-extrabold mb-4 leading-tight tracking-tight drop-shadow-2xl">
+                        Welcome to <br/> ResearchFlow
+                    </h1>
+                    <p className="text-lg text-slate-200 max-w-lg font-light leading-relaxed drop-shadow-md">
+                        Make research easy. Plan, track, and work together on projects in one place.
+                    </p>
                 </div>
+            </div>
 
-                {/* Login Card */}
-                <div className="bg-white rounded-2xl shadow-2xl p-8 border-t-[6px] border-[#FFD700] transform transition-all duration-500 hover:shadow-3xl">
-                    <div className="mb-8">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Secure Login</h2>
-                        <p className="text-sm text-gray-500">Select your account type to continue</p>
+            {/* Right Side - Login Form */}
+            <div className="w-full lg:w-[45%] flex items-center justify-center p-4 sm:p-8 relative overflow-y-auto">
+                <div className="w-full max-w-md relative z-10 py-6">
+                    {/* Header */}
+                    <div className="text-center mb-6">
+                        <div className="inline-flex items-center justify-center w-14 h-14 bg-white rounded-2xl shadow-lg mb-4 transform transition hover:-translate-y-1 border border-slate-100">
+                            <FaGraduationCap className="text-[#2F4F4F] text-3xl" />
+                        </div>
+                        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight mb-1">Secure Login</h2>
+                        <p className="text-sm text-slate-500 font-medium">Access your academic workspace</p>
                     </div>
 
-                    <form onSubmit={handleClick} className="space-y-6">
-                        {/* Role Selection */}
-                        <div className="space-y-2">
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest px-1">
-                                Identification
-                            </label>
-                            <div className="relative">
-                                <select
-                                    value={role}
-                                    onChange={(e) => setRole(e.target.value)}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent transition appearance-none cursor-pointer font-medium text-gray-700"
-                                >
-                                    <option value="student">Student Researcher</option>
-                                    <option value="sponsor">Sponsor</option>
-                                    <option value="admin">Administrator</option>
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Email */}
-                        <div className="space-y-2">
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest px-1">
-                                Email Address
-                            </label>
-                            <div className="relative">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                                    <FaEnvelope size={18} />
-                                </div>
-                                <input
-                                    placeholder="name@university.edu"
-                                    type="email"
-                                    required
-                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent transition font-medium text-gray-700 placeholder:text-gray-300"
-                                    ref={email}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Password */}
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between px-1">
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest">
-                                    Password
+                    {/* Form Card */}
+                    <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 sm:p-8 transition-all duration-300 hover:shadow-xl">
+                        <form onSubmit={handleClick} className="space-y-4">
+                            
+                            {/* Role */}
+                            <div className="space-y-1.5">
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                    Identification
                                 </label>
-                                <a href="#" className="text-xs font-bold text-[#FFD700] hover:text-[#E6C200] transition">
-                                    Forgot password?
-                                </a>
-                            </div>
-                            <div className="relative">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                                    <FaLock size={18} />
+                                <div className="relative group">
+                                    <select
+                                        value={role}
+                                        onChange={(e) => setRole(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent transition-all appearance-none cursor-pointer text-sm font-medium text-slate-700"
+                                    >
+                                        <option value="student">Student Researcher</option>
+                                        <option value="sponsor">Sponsor</option>
+                                        <option value="admin">Administrator</option>
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-slate-600 transition-colors">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
                                 </div>
-                                <input
-                                    placeholder="••••••••"
-                                    type="password"
-                                    required
-                                    minLength="6"
-                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent transition font-medium text-gray-700 placeholder:text-gray-300"
-                                    ref={password}
-                                />
                             </div>
-                        </div>
 
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            className="w-full py-4 bg-[#2F4F4F] text-white font-bold rounded-xl hover:bg-[#3A5F5F] transform transition active:scale-[0.98] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
-                            disabled={isFetching}
-                        >
-                            {isFetching ? "Signing in..." : "Sign In to Portal"}
-                            {!isFetching && <span className="transition-transform group-hover:translate-x-1">→</span>}
-                        </button>
-
-                        {/* Error Message */}
-                        {error && (
-                            <div className="text-red-600 text-sm text-center bg-red-50 p-4 rounded-xl border border-red-100 animate-pulse">
-                                <span className="font-bold text-xs uppercase tracking-tight block mb-1">Access Denied</span>
-                                <span className="text-xs">{getErrorMessage()}</span>
+                            {/* Email */}
+                            <div className="space-y-1.5">
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                    Email Address
+                                </label>
+                                <div className="relative group">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#FFD700] transition-colors">
+                                        <FaEnvelope size={14} />
+                                    </div>
+                                    <input
+                                        placeholder="name@university.edu"
+                                        type="email"
+                                        required
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:bg-white transition-all text-sm font-medium text-slate-700 placeholder:text-slate-400"
+                                        ref={email}
+                                    />
+                                </div>
                             </div>
-                        )}
-                    </form>
 
-                    {/* Footer Links */}
-                    <div className="mt-8 text-center text-sm text-gray-400 font-medium">
+                            {/* Password */}
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                        Password
+                                    </label>
+                                    <a href="#" className="text-[11px] font-bold text-[#FFD700] hover:text-[#e6c200] transition-colors">
+                                        Forgot password?
+                                    </a>
+                                </div>
+                                <div className="relative group">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#FFD700] transition-colors">
+                                        <FaLock size={14} />
+                                    </div>
+                                    <input
+                                        placeholder="••••••••"
+                                        type="password"
+                                        required
+                                        minLength="6"
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:bg-white transition-all text-sm font-medium text-slate-700 placeholder:text-slate-400"
+                                        ref={password}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Error */}
+                            {error && (
+                                <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-lg animate-pulse">
+                                    <div className="flex">
+                                        <div className="ml-3">
+                                            <p className="text-xs text-red-700 font-medium">{getErrorMessage()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Button */}
+                            <div className="pt-2">
+                                <button
+                                    type="submit"
+                                    className="w-full py-3 bg-[#2F4F4F] text-white font-bold text-sm rounded-xl hover:bg-[#1a2f2f] transform transition active:scale-[0.98] shadow-md hover:shadow-lg flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={isFetching}
+                                >
+                                    {isFetching ? (
+                                        <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        <>
+                                            Sign In to Portal
+                                            <svg className="w-4 h-4 transform transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-6 text-center text-[13px] text-slate-500 font-medium">
                         New to ResearchFlow?{" "}
-                        <Link to="/register" className="text-gray-700 font-bold hover:underline">
+                        <Link to="/register" className="font-bold text-[#2F4F4F] hover:text-[#1a2f2f] transition-colors hover:underline decoration-2 underline-offset-4">
                             Create an account
                         </Link>
-                    </div>
-                </div>
-
-                {/* Secure Footer Section */}
-                <div className="mt-12 text-center text-gray-400">
-                    <div className="flex items-center justify-center gap-4 mb-4">
-                        <div className="h-[1px] w-12 bg-gray-300"></div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Admin Login</span>
-                        <div className="h-[1px] w-12 bg-gray-300"></div>
-                    </div>
-                    <div className="flex items-center justify-center gap-6 text-[10px] font-bold uppercase tracking-widest">
-                        <a href="#" className="hover:text-gray-600 transition">Privacy Policy</a>
-                        <a href="#" className="hover:text-gray-600 transition">Terms of Use</a>
-                        <a href="#" className="hover:text-gray-600 transition">Contact</a>
                     </div>
                 </div>
             </div>
