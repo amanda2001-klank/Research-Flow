@@ -111,4 +111,24 @@ router.post('/upload-avatar/:id', avatarUpload.single('avatar'), async (req, res
     }
 });
 
+// Update notification preferences
+router.put('/notification-preferences/:id', async (req, res) => {
+    try {
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            { $set: { notificationPreferences: req.body.notificationPreferences } },
+            { new: true }
+        );
+        
+        if (!updatedUser) {
+            return res.status(404).json("User not found");
+        }
+
+        const { password, ...other } = updatedUser._doc;
+        res.status(200).json(other);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
 module.exports = router;

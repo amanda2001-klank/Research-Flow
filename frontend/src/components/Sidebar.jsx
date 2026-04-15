@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { FaGraduationCap, FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory, FaFlask } from "react-icons/fa";
+import { FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory, FaFlask } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 
 const Sidebar = ({ view, setView }) => {
@@ -21,6 +21,7 @@ const Sidebar = ({ view, setView }) => {
                 { name: "Announcements", icon: <FaBullhorn size={20} /> },
                 { name: "Manage Sponsors", icon: <FaUserShield size={20} /> },
                 { name: "Manage Students", icon: <FaUserGraduate size={20} /> },
+                { name: "Manage Users", icon: <FaUsers size={20} /> },
                 { name: "All Sponsors", icon: <FaUsers size={20} /> },
             ];
         } else if (user?.role === 'sponsor') {
@@ -55,16 +56,8 @@ const Sidebar = ({ view, setView }) => {
     return (
         <div className="w-[260px] bg-[#2F4F4F] text-gray-300 flex flex-col h-full font-sans">
             {/* Logo Section */}
-            <div className="p-6 flex items-center gap-3">
-                <div className="p-2 bg-[#FFD700] rounded-lg">
-                    <FaGraduationCap className="text-[#2F4F4F] text-xl" />
-                </div>
-                <div>
-                    <h1 className="text-white font-bold text-lg tracking-wide">ResearchFlow</h1>
-                    <span className="text-xs uppercase tracking-wider text-gray-400 font-medium">
-                        {user?.role || 'User'}
-                    </span>
-                </div>
+            <div className="p-6 flex items-center justify-center border-b border-gray-700">
+                <img src="/logo.svg" alt="ResearchFlow" className="h-14 object-contain" />
             </div>
 
             {/* Navigation */}

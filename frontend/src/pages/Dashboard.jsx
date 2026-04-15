@@ -15,6 +15,7 @@ import FAQ from "./FAQ";
 import AIAssistant from "./AIAssistant";
 import ManageSponsors from "./ManageSponsors";
 import ManageStudents from "./ManageStudents";
+import ManageUsers from "./ManageUsers";
 import AllSponsors from "./AllSponsors";
 import FortnightPage from "./FortnightPage";
 import DocumentsPage from "./DocumentsPage";
@@ -364,6 +365,16 @@ const Dashboard = () => {
                                             </button>
 
                                             <button
+                                                onClick={() => setView('Manage Users')}
+                                                className="p-4 rounded-lg border border-gray-200 hover:shadow-md hover:border-gray-300 transition text-left"
+                                                style={{ backgroundColor: "rgba(232, 166, 58, 0.05)" }}
+                                            >
+                                                <div className="text-2xl mb-2">🔧</div>
+                                                <h3 className="font-semibold text-gray-800 text-sm">Manage All Users</h3>
+                                                <p className="text-gray-600 text-xs mt-1">Add, edit, and delete any user account</p>
+                                            </button>
+
+                                            <button
                                                 onClick={() => setView('All Sponsors')}
                                                 className="p-4 rounded-lg border border-gray-200 hover:shadow-md hover:border-gray-300 transition text-left"
                                                 style={{ backgroundColor: "rgba(100, 150, 150, 0.05)" }}
@@ -480,6 +491,9 @@ const Dashboard = () => {
             case 'Manage Students':
                 return <ManageStudents />;
 
+            case 'Manage Users':
+                return <ManageUsers />;
+
             case 'All Sponsors':
                 return <AllSponsors />;
 
@@ -491,7 +505,7 @@ const Dashboard = () => {
                 return <DocumentsPage />;
 
             case 'Student Home':
-                return <StudentHome />;
+                return <StudentHome onNavigate={setView} />;
 
             case 'Project Milestones':
                 return <ProjectMilestoneTimeline />;

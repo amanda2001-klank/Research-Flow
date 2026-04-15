@@ -2,7 +2,7 @@ import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import axios from "axios";
-import { FiArrowLeft, FiEdit2, FiSave, FiX, FiUpload } from "react-icons/fi";
+import { FiArrowLeft, FiEdit2, FiSave, FiX, FiUpload, FiBell } from "react-icons/fi";
 
 const UserProfile = () => {
     const { user, dispatch } = useContext(AuthContext);
@@ -14,6 +14,8 @@ const UserProfile = () => {
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
+    const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'notifications'
+    const [savingPreferences, setSavingPreferences] = useState(false);
 
     const [formData, setFormData] = useState({
         username: "",
@@ -21,6 +23,28 @@ const UserProfile = () => {
         fullName: "",
         avatar: "",
         role: "",
+    });
+
+    const [notificationPreferences, setNotificationPreferences] = useState({
+        email: true,
+        push: true,
+        sms: false,
+        deadlineAlerts: {
+            enabled: true,
+            oneWeekBefore: true,
+            threeDaysBefore: true,
+            oneDayBefore: true,
+            sameDayAlert: true,
+            escalationAlert: true
+        },
+        weeklyDigest: true,
+        weeklyDigestDay: 'Monday',
+        immediateNotifications: true,
+        quietHours: {
+            enabled: false,
+            startTime: '22:00',
+            endTime: '08:00'
+        }
     });
 
     useEffect(() => {
@@ -32,6 +56,22 @@ const UserProfile = () => {
                 avatar: user.avatar || "",
                 role: user.role || "student",
             });
+            
+            // Load notification preferences with defaults merged
+            if (user.notificationPreferences) {
+                setNotificationPreferences(prev => ({
+                    ...prev,
+                    ...user.notificationPreferences,
+                    deadlineAlerts: {
+                        ...prev.deadlineAlerts,
+                        ...(user.notificationPreferences.deadlineAlerts || {})
+                    },
+                    quietHours: {
+                        ...prev.quietHours,
+                        ...(user.notificationPreferences.quietHours || {})
+                    }
+                }));
+            }
         } else {
             navigate("/login");
         }
@@ -152,6 +192,44 @@ const UserProfile = () => {
         }
     };
 
+    const saveNotificationPreferences = async () => {
+        try {
+            setSavingPreferences(true);
+            setError(null);
+            setSuccess(null);
+
+            const response = await axios.put(
+                `http://localhost:5000/api/auth/notification-preferences/${user._id}`,
+                { notificationPreferences }
+            );
+
+            dispatch({ type: "LOGIN_SUCCESS", payload: response.data });
+
+            setSuccess("Notification preferences saved successfully!");
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to save preferences");
+            console.error("Preferences error:", err);
+        } finally {
+            setSavingPreferences(false);
+        }
+    };
+
+    const handleNotificationToggle = (path, value) => {
+        setNotificationPreferences(prev => {
+            const updated = JSON.parse(JSON.stringify(prev));
+            const keys = path.split('.');
+            let current = updated;
+            
+            for (let i = 0; i < keys.length - 1; i++) {
+                current = current[keys[i]];
+            }
+            current[keys[keys.length - 1]] = value;
+            
+            return updated;
+        });
+    };
+
     if (!user) {
         return <div className="text-center py-10">Loading...</div>;
     }
@@ -252,6 +330,34 @@ const UserProfile = () => {
                         {/* Right Column - Profile Details */}
                         <div className="lg:col-span-3">
                             <div className="bg-white rounded-lg shadow-md p-8">
+                                {/* Tabs */}
+                                <div className="flex gap-4 border-b border-gray-200 mb-8 pb-0">
+                                    <button
+                                        onClick={() => setActiveTab('profile')}
+                                        className={`px-4 py-4 font-semibold border-b-2 transition ${
+                                            activeTab === 'profile'
+                                                ? 'border-blue-600 text-blue-600'
+                                                : 'border-transparent text-gray-600 hover:text-gray-800'
+                                        }`}
+                                    >
+                                        Profile Information
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('notifications')}
+                                        className={`px-4 py-4 font-semibold border-b-2 transition flex items-center gap-2 ${
+                                            activeTab === 'notifications'
+                                                ? 'border-blue-600 text-blue-600'
+                                                : 'border-transparent text-gray-600 hover:text-gray-800'
+                                        }`}
+                                    >
+                                        <FiBell size={18} />
+                                        Notification Settings
+                                    </button>
+                                </div>
+
+                                {/* Profile Tab */}
+                                {activeTab === 'profile' && (
+                                    <>
                                 {/* Header */}
                                 <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
                                     <div>
@@ -450,6 +556,245 @@ const UserProfile = () => {
                                             )}
                                         </button>
                                     </div>
+                                )}
+                                    </>
+                                )}
+
+                                {/* Notifications Tab */}
+                                {activeTab === 'notifications' && (
+                                    <>
+                                        <div className="space-y-8">
+                                            {/* Notification Channels */}
+                                            <div>
+                                                <h3 className="text-xl font-bold text-gray-900 mb-4">Notification Channels</h3>
+                                                <div className="space-y-4">
+                                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={notificationPreferences.email}
+                                                            onChange={(e) => handleNotificationToggle('email', e.target.checked)}
+                                                            className="w-5 h-5 rounded cursor-pointer"
+                                                        />
+                                                        <div>
+                                                            <p className="font-semibold text-gray-900">Email Notifications</p>
+                                                            <p className="text-sm text-gray-600">Receive updates via email</p>
+                                                        </div>
+                                                    </label>
+
+                                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={notificationPreferences.push}
+                                                            onChange={(e) => handleNotificationToggle('push', e.target.checked)}
+                                                            className="w-5 h-5 rounded cursor-pointer"
+                                                        />
+                                                        <div>
+                                                            <p className="font-semibold text-gray-900">Push Notifications</p>
+                                                            <p className="text-sm text-gray-600">Receive push notifications in your browser</p>
+                                                        </div>
+                                                    </label>
+
+                                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={notificationPreferences.sms}
+                                                            onChange={(e) => handleNotificationToggle('sms', e.target.checked)}
+                                                            className="w-5 h-5 rounded cursor-pointer"
+                                                        />
+                                                        <div>
+                                                            <p className="font-semibold text-gray-900">SMS Notifications</p>
+                                                            <p className="text-sm text-gray-600">Receive text messages for urgent alerts</p>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            {/* Deadline Alerts */}
+                                            <div className="border-t pt-8">
+                                                <h3 className="text-xl font-bold text-gray-900 mb-4">Deadline Alerts</h3>
+                                                <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={notificationPreferences.deadlineAlerts.enabled}
+                                                        onChange={(e) => handleNotificationToggle('deadlineAlerts.enabled', e.target.checked)}
+                                                        className="w-5 h-5 rounded cursor-pointer"
+                                                    />
+                                                    <div>
+                                                        <p className="font-semibold text-gray-900">Enable Deadline Alerts</p>
+                                                        <p className="text-sm text-gray-600">Get notified about upcoming deadlines</p>
+                                                    </div>
+                                                </label>
+
+                                                {notificationPreferences.deadlineAlerts.enabled && (
+                                                    <div className="ml-4 space-y-3 pb-4 border-l-2 pl-4" style={{ borderColor: "#E8A63A" }}>
+                                                        <label className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={notificationPreferences.deadlineAlerts.oneWeekBefore}
+                                                                onChange={(e) => handleNotificationToggle('deadlineAlerts.oneWeekBefore', e.target.checked)}
+                                                                className="w-4 h-4 rounded cursor-pointer"
+                                                            />
+                                                            <div>
+                                                                <p className="font-semibold text-gray-900">1 Week Before</p>
+                                                                <p className="text-xs text-gray-600">Notify me 7 days before deadline</p>
+                                                            </div>
+                                                        </label>
+
+                                                        <label className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={notificationPreferences.deadlineAlerts.threeDaysBefore}
+                                                                onChange={(e) => handleNotificationToggle('deadlineAlerts.threeDaysBefore', e.target.checked)}
+                                                                className="w-4 h-4 rounded cursor-pointer"
+                                                            />
+                                                            <div>
+                                                                <p className="font-semibold text-gray-900">3 Days Before</p>
+                                                                <p className="text-xs text-gray-600">Notify me 3 days before deadline</p>
+                                                            </div>
+                                                        </label>
+
+                                                        <label className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={notificationPreferences.deadlineAlerts.oneDayBefore}
+                                                                onChange={(e) => handleNotificationToggle('deadlineAlerts.oneDayBefore', e.target.checked)}
+                                                                className="w-4 h-4 rounded cursor-pointer"
+                                                            />
+                                                            <div>
+                                                                <p className="font-semibold text-gray-900">1 Day Before</p>
+                                                                <p className="text-xs text-gray-600">Notify me 1 day before deadline</p>
+                                                            </div>
+                                                        </label>
+
+                                                        <label className="flex items-center gap-3 p-3 bg-red-50 rounded-lg cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={notificationPreferences.deadlineAlerts.sameDayAlert}
+                                                                onChange={(e) => handleNotificationToggle('deadlineAlerts.sameDayAlert', e.target.checked)}
+                                                                className="w-4 h-4 rounded cursor-pointer"
+                                                            />
+                                                            <div>
+                                                                <p className="font-semibold text-gray-900">Same Day Alert</p>
+                                                                <p className="text-xs text-gray-600">Notify me on the day of deadline</p>
+                                                            </div>
+                                                        </label>
+
+                                                        <label className="flex items-center gap-3 p-3 bg-rose-50 rounded-lg cursor-pointer border-2 border-rose-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={notificationPreferences.deadlineAlerts.escalationAlert}
+                                                                onChange={(e) => handleNotificationToggle('deadlineAlerts.escalationAlert', e.target.checked)}
+                                                                className="w-4 h-4 rounded cursor-pointer"
+                                                            />
+                                                            <div>
+                                                                <p className="font-semibold text-rose-900">Escalation Alert</p>
+                                                                <p className="text-xs text-rose-700">Urgent notification if deadline is missed</p>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Weekly Digest */}
+                                            <div className="border-t pt-8">
+                                                <h3 className="text-xl font-bold text-gray-900 mb-4">Weekly Summary</h3>
+                                                <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={notificationPreferences.weeklyDigest}
+                                                        onChange={(e) => handleNotificationToggle('weeklyDigest', e.target.checked)}
+                                                        className="w-5 h-5 rounded cursor-pointer"
+                                                    />
+                                                    <div>
+                                                        <p className="font-semibold text-gray-900">Weekly Digest</p>
+                                                        <p className="text-sm text-gray-600">Get a summary of activity each week</p>
+                                                    </div>
+                                                </label>
+
+                                                {notificationPreferences.weeklyDigest && (
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Day</label>
+                                                        <select
+                                                            value={notificationPreferences.weeklyDigestDay}
+                                                            onChange={(e) => handleNotificationToggle('weeklyDigestDay', e.target.value)}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0"
+                                                            style={{ focusRing: "#2c5f5d" }}
+                                                        >
+                                                            <option value="Monday">Monday</option>
+                                                            <option value="Tuesday">Tuesday</option>
+                                                            <option value="Wednesday">Wednesday</option>
+                                                            <option value="Thursday">Thursday</option>
+                                                            <option value="Friday">Friday</option>
+                                                            <option value="Saturday">Saturday</option>
+                                                            <option value="Sunday">Sunday</option>
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Quiet Hours */}
+                                            <div className="border-t pt-8">
+                                                <h3 className="text-xl font-bold text-gray-900 mb-4">Quiet Hours</h3>
+                                                <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={notificationPreferences.quietHours.enabled}
+                                                        onChange={(e) => handleNotificationToggle('quietHours.enabled', e.target.checked)}
+                                                        className="w-5 h-5 rounded cursor-pointer"
+                                                    />
+                                                    <div>
+                                                        <p className="font-semibold text-gray-900">Enable Quiet Hours</p>
+                                                        <p className="text-sm text-gray-600">Don't notify me during specific times</p>
+                                                    </div>
+                                                </label>
+
+                                                {notificationPreferences.quietHours.enabled && (
+                                                    <div className="grid grid-cols-2 gap-4 mt-4">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                                                            <input
+                                                                type="time"
+                                                                value={notificationPreferences.quietHours.startTime}
+                                                                onChange={(e) => handleNotificationToggle('quietHours.startTime', e.target.value)}
+                                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                                                            <input
+                                                                type="time"
+                                                                value={notificationPreferences.quietHours.endTime}
+                                                                onChange={(e) => handleNotificationToggle('quietHours.endTime', e.target.value)}
+                                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Save Button */}
+                                            <div className="border-t pt-8">
+                                                <button
+                                                    onClick={saveNotificationPreferences}
+                                                    disabled={savingPreferences}
+                                                    className="w-full flex items-center justify-center gap-2 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
+                                                    style={{ backgroundColor: "#2c5f5d" }}
+                                                >
+                                                    {savingPreferences ? (
+                                                        <>
+                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                            <span>Saving...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <FiSave size={18} />
+                                                            <span>Save Notification Settings</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>
