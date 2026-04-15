@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
 const { Server } = require("socket.io");
 require('dotenv').config();
 
@@ -17,6 +18,21 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
+
+// Create necessary directories if they don't exist
+const uploadDir = path.join(__dirname, 'uploads');
+const avatarDir = path.join(__dirname, 'uploads/avatars');
+const documentDir = path.join(__dirname, 'uploads/documents');
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+if (!fs.existsSync(avatarDir)) {
+  fs.mkdirSync(avatarDir, { recursive: true });
+}
+if (!fs.existsSync(documentDir)) {
+  fs.mkdirSync(documentDir, { recursive: true });
+}
 
 app.use(cors());
 app.use(express.json());

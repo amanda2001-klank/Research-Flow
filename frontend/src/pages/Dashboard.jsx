@@ -526,12 +526,24 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="h-screen w-screen bg-gray-50 flex overflow-hidden font-sans">
+        <div className="h-screen w-screen bg-gray-50 flex overflow-hidden font-sans relative">
             {/* 1. Main Navigation Sidebar */}
             <Sidebar view={view} setView={setView} />
 
             {/* 2. Content Area based on View */}
             {renderContent()}
+
+            {/* 3. Floating AI Assistant Button */}
+            {view !== 'AI Assistant' && (
+                <button
+                    onClick={() => setView('AI Assistant')}
+                    className="fixed bottom-8 right-8 w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center z-50 text-2xl"
+                    style={{ backgroundColor: "#2c5f5d" }}
+                    title="Open AI Assistant"
+                >
+                    🤖
+                </button>
+            )}
         </div>
     );
 };

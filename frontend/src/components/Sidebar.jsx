@@ -1,10 +1,12 @@
 import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { FaGraduationCap, FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory, FaFlask } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 
 const Sidebar = ({ view, setView }) => {
     const { user, dispatch } = useContext(AuthContext);
+    const navigate = useNavigate();
 
     const handleLogout = () => {
         dispatch({ type: "LOGOUT" });
@@ -84,12 +86,18 @@ const Sidebar = ({ view, setView }) => {
 
             {/* User Profile & Logout */}
             <div className="p-4 border-t border-[#3A5F5F]">
-                <div className="flex items-center gap-3 mb-4">
+                <div 
+                    onClick={() => navigate("/profile")}
+                    className="flex items-center gap-3 mb-4 cursor-pointer hover:opacity-80 transition"
+                >
                     <div className="relative">
                         <img
-                            src={`https://ui-avatars.com/api/?name=${user?.username}&background=FFD700&color=2F4F4F`}
+                            src={user?.avatar ? `http://localhost:5000${user.avatar}` : `https://ui-avatars.com/api/?name=${user?.username}&background=FFD700&color=2F4F4F`}
                             alt="User"
-                            className="w-10 h-10 rounded-full border-2 border-[#3A5F5F]"
+                            className="w-10 h-10 rounded-full border-2 border-[#3A5F5F] object-cover"
+                            onError={(e) => {
+                                e.target.src = `https://ui-avatars.com/api/?name=${user?.username}&background=FFD700&color=2F4F4F`;
+                            }}
                         />
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#2F4F4F]"></div>
                     </div>

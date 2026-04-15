@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const User = require('../models/User');
+const avatarUpload = require('../middleware/avatarUpload');
 // In a real app, use bcrypt and jwt. For this demo, simple check.
 
 router.post('/register', async (req, res) => {
@@ -56,6 +57,55 @@ router.get('/:id', async (req, res) => {
         const user = await User.findById(req.params.id);
         const { password, ...other } = user._doc;
         res.status(200).json(other);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+router.put('/update/:id', async (req, res) => {
+    try {
+        const { password, ...updateData } = req.body; // Don't allow password change here
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            { $set: updateData },
+            { new: true }
+        );
+        
+        if (!updatedUser) {
+            return res.status(404).json("User not found");
+        }
+
+        const { password: _, ...other } = updatedUser._doc;
+        res.status(200).json(other);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+router.post('/upload-avatar/:id', avatarUpload.single('avatar'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json("No file uploaded");
+        }
+
+        const avatarPath = `/uploads/avatars/${req.file.filename}`;
+        
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            { $set: { avatar: avatarPath } },
+            { new: true }
+        );
+        
+        if (!updatedUser) {
+            return res.status(404).json("User not found");
+        }
+
+        const { password, ...other } = updatedUser._doc;
+        res.status(200).json({
+            ...other,
+            message: "Avatar uploaded successfully",
+            avatarUrl: avatarPath
+        });
     } catch (err) {
         res.status(500).json(err);
     }
