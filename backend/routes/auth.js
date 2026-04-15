@@ -1,7 +1,6 @@
 const router = require('express').Router();
 const User = require('../models/User');
 const avatarUpload = require('../middleware/avatarUpload');
-// In a real app, use bcrypt and jwt. For this demo, simple check.
 
 router.post('/register', async (req, res) => {
     try {
@@ -126,6 +125,21 @@ router.put('/notification-preferences/:id', async (req, res) => {
 
         const { password, ...other } = updatedUser._doc;
         res.status(200).json(other);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+// Delete user endpoint
+router.delete('/:id', async (req, res) => {
+    try {
+        const deletedUser = await User.findByIdAndDelete(req.params.id);
+        
+        if (!deletedUser) {
+            return res.status(404).json("User not found");
+        }
+
+        res.status(200).json("User deleted successfully");
     } catch (err) {
         res.status(500).json(err);
     }

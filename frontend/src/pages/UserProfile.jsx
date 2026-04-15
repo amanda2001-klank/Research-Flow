@@ -14,7 +14,7 @@ const UserProfile = () => {
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
-    const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'notifications'
+    const [activeTab, setActiveTab] = useState('profile');
     const [savingPreferences, setSavingPreferences] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -259,546 +259,358 @@ const UserProfile = () => {
                             <div className="mb-2" style={{ color: "#E8A63A" }}>
                                 <span className="text-sm font-semibold tracking-widest">● USER PROFILE</span>
                             </div>
-                            <h1 className="text-4xl font-bold text-white mb-2">{user?.fullName || user?.username}</h1>
-                            <p className="text-gray-300">Manage your profile information and settings</p>
+                            <h1 className="text-4xl font-bold text-white mb-2">{formData.fullName || "User Profile"}</h1>
+                            <p className="text-gray-300">Manage your account information and preferences</p>
                         </div>
                         <button
                             onClick={() => navigate("/")}
-                            className="flex items-center gap-2 text-white hover:text-gray-200 transition"
+                            className="flex items-center gap-2 px-4 py-2 bg-white text-gray-800 rounded-lg hover:bg-gray-100 transition font-medium"
                         >
                             <FiArrowLeft size={20} />
-                            <span>Back</span>
+                            Back
                         </button>
                     </div>
                 </div>
             </div>
 
             <div className="p-8">
-                <div className="max-w-6xl mx-auto">
-                    {/* Messages */}
+                <div className="max-w-4xl mx-auto">
+                    {/* Tabs */}
+                    <div className="flex gap-4 mb-8 border-b border-gray-200">
+                        <button
+                            onClick={() => setActiveTab('profile')}
+                            className={`px-6 py-3 font-semibold transition ${
+                                activeTab === 'profile'
+                                    ? 'border-b-2 text-white'
+                                    : 'text-gray-600 hover:text-gray-800'
+                            }`}
+                            style={activeTab === 'profile' ? { borderColor: "#E8A63A", color: "#2c5f5d" } : {}}
+                        >
+                            Profile Information
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('notifications')}
+                            className={`px-6 py-3 font-semibold transition flex items-center gap-2 ${
+                                activeTab === 'notifications'
+                                    ? 'border-b-2 text-white'
+                                    : 'text-gray-600 hover:text-gray-800'
+                            }`}
+                            style={activeTab === 'notifications' ? { borderColor: "#E8A63A", color: "#2c5f5d" } : {}}
+                        >
+                            <FiBell size={18} />
+                            Notification Settings
+                        </button>
+                    </div>
+
+                    {/* Error & Success Messages */}
                     {error && (
-                        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 text-red-700 rounded">
-                            {typeof error === 'string' ? error : "An error occurred"}
+                        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                            {typeof error === 'string' ? error : JSON.stringify(error)}
                         </div>
                     )}
                     {success && (
-                        <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-400 text-green-700 rounded">
+                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
                             {success}
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        {/* Left Column - Avatar & Overview */}
-                        <div className="lg:col-span-1">
-                            <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
-                                {/* Avatar */}
-                                <div className="text-center mb-6">
-                                    <div className="flex justify-center mb-4">
+                    {/* Profile Tab */}
+                    {activeTab === 'profile' && (
+                        <div className="bg-white rounded-lg shadow-md p-8">
+                            <div className="flex items-start gap-8 mb-8">
+                                {/* Avatar Section */}
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 border-4" style={{ borderColor: "#E8A63A" }}>
                                         <img
-                                            src={
-                                                previewUrl ? previewUrl :
-                                                formData.avatar && formData.avatar.startsWith('/') 
-                                                    ? `http://localhost:5000${formData.avatar}` 
-                                                    : formData.avatar || `https://ui-avatars.com/api/?name=${formData.username}&size=128`
-                                            }
-                                            alt="User Avatar"
-                                            className="w-32 h-32 rounded-full object-cover border-4"
-                                            style={{ borderColor: "#E8A63A" }}
-                                            onError={(e) => {
-                                                e.target.src = `https://ui-avatars.com/api/?name=${formData.username}&size=128`;
-                                            }}
+                                            src={previewUrl || (formData.avatar ? `http://localhost:5000${formData.avatar}` : `https://ui-avatars.com/api/?name=${formData.fullName || 'User'}&background=#E8A63A&color=fff&size=128`)}
+                                            alt="Profile"
+                                            className="w-full h-full object-cover"
                                         />
                                     </div>
-                                    <h2 className="text-xl font-bold text-gray-900 mb-2">{formData.fullName || formData.username}</h2>
-                                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${roleColors.badge}`}>
-                                        {getRoleLabel(formData.role)}
-                                    </span>
-                                </div>
-
-                                {/* Stats Cards */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                                        <span className="truncate">{formData.email}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                                        <span>{new Date(user.createdAt).toLocaleDateString()}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right Column - Profile Details */}
-                        <div className="lg:col-span-3">
-                            <div className="bg-white rounded-lg shadow-md p-8">
-                                {/* Tabs */}
-                                <div className="flex gap-4 border-b border-gray-200 mb-8 pb-0">
-                                    <button
-                                        onClick={() => setActiveTab('profile')}
-                                        className={`px-4 py-4 font-semibold border-b-2 transition ${
-                                            activeTab === 'profile'
-                                                ? 'border-blue-600 text-blue-600'
-                                                : 'border-transparent text-gray-600 hover:text-gray-800'
-                                        }`}
-                                    >
-                                        Profile Information
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveTab('notifications')}
-                                        className={`px-4 py-4 font-semibold border-b-2 transition flex items-center gap-2 ${
-                                            activeTab === 'notifications'
-                                                ? 'border-blue-600 text-blue-600'
-                                                : 'border-transparent text-gray-600 hover:text-gray-800'
-                                        }`}
-                                    >
-                                        <FiBell size={18} />
-                                        Notification Settings
-                                    </button>
-                                </div>
-
-                                {/* Profile Tab */}
-                                {activeTab === 'profile' && (
-                                    <>
-                                {/* Header */}
-                                <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-gray-900">Profile Information</h3>
-                                        <p className="text-gray-500 mt-1">Manage your personal details</p>
-                                    </div>
-                                    <button
-                                        onClick={isEditing ? handleCancel : () => setIsEditing(true)}
-                                        className={`flex items-center gap-2 px-6 py-2 rounded-lg font-semibold transition ${
-                                            isEditing
-                                                ? "bg-gray-100 hover:bg-gray-200 text-gray-800"
-                                                : "text-white"
-                                        }`}
-                                        style={!isEditing ? { backgroundColor: "#E8A63A" } : {}}
-                                    >
-                                        {isEditing ? (
-                                            <>
-                                                <FiX size={18} />
-                                                <span>Cancel</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FiEdit2 size={18} />
-                                                <span>Edit Profile</span>
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-
-                                {/* Avatar Upload Section */}
-                                {isEditing && (
-                                    <div className="mb-8 pb-8 border-b border-gray-200">
-                                        <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                            <FiUpload size={20} style={{ color: "#E8A63A" }} />
-                                            Upload Profile Picture
-                                        </h4>
-                                        <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                                            <div className="flex gap-4 items-start">
+                                    {isEditing && (
+                                        <div className="flex gap-2">
+                                            <label className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer transition" style={{ backgroundColor: "#E8A63A", color: "white" }}>
+                                                <FiUpload size={18} />
+                                                Upload
                                                 <input
                                                     type="file"
                                                     accept="image/*"
                                                     onChange={handleFileSelect}
-                                                    className="flex-1 block w-full text-sm text-gray-500
-                                        file:mr-4 file:py-2 file:px-4 file:rounded-lg
-                                        file:border-0 file:text-sm file:font-semibold
-                                        file:bg-blue-50 file:text-blue-700
-                                        hover:file:bg-blue-100 file:cursor-pointer"
+                                                    className="hidden"
                                                 />
+                                            </label>
+                                            {selectedFile && (
                                                 <button
                                                     onClick={handleUploadAvatar}
-                                                    disabled={!selectedFile || uploadingAvatar}
-                                                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition whitespace-nowrap font-semibold"
+                                                    disabled={uploadingAvatar}
+                                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition font-medium"
                                                 >
-                                                    {uploadingAvatar ? (
-                                                        <>
-                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                            <span>Uploading...</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <FiUpload size={18} />
-                                                            <span>Upload</span>
-                                                        </>
-                                                    )}
+                                                    {uploadingAvatar ? 'Uploading...' : 'Save'}
                                                 </button>
-                                            </div>
-                                            <p className="text-xs text-gray-500 mt-3">
-                                                Max file size: 5MB. Formats: PNG, JPEG, JPG, GIF, WebP
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Form Fields */}
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Full Name */}
-                                        <div>
-                                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                                                Full Name
-                                            </label>
-                                            {isEditing ? (
-                                                <input
-                                                    type="text"
-                                                    name="fullName"
-                                                    value={formData.fullName}
-                                                    onChange={handleChange}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition"
-                                                    style={{ focusRing: "#E8A63A" }}
-                                                    placeholder="Enter your full name"
-                                                />
-                                            ) : (
-                                                <p className="text-lg font-semibold text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                                                    {formData.fullName || "Not provided"}
-                                                </p>
                                             )}
                                         </div>
+                                    )}
+                                </div>
 
-                                        {/* Username */}
-                                        <div>
-                                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                                                Username
-                                            </label>
-                                            {isEditing ? (
-                                                <input
-                                                    type="text"
-                                                    name="username"
-                                                    value={formData.username}
-                                                    onChange={handleChange}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition"
-                                                    style={{ focusRing: "#E8A63A" }}
-                                                    placeholder="Enter username"
-                                                />
-                                            ) : (
-                                                <p className="text-lg font-semibold text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                                                    @{formData.username}
-                                                </p>
-                                            )}
-                                        </div>
+                                {/* Role Badge */}
+                                <div className="flex-1">
+                                    <div className={`inline-block px-4 py-2 rounded-lg font-bold mb-4 ${roleColors.badge}`}>
+                                        {getRoleLabel(formData.role)}
                                     </div>
+                                    <p className="text-gray-500 text-sm">Member since {new Date(user.createdAt).toLocaleDateString()}</p>
+                                </div>
+                            </div>
 
-                                    {/* Email */}
+                            {/* Form Fields */}
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 gap-6">
                                     <div>
-                                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                                            Email Address
-                                        </label>
-                                        {isEditing ? (
-                                            <input
-                                                type="email"
-                                                name="email"
-                                                value={formData.email}
-                                                onChange={handleChange}
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition"
-                                                style={{ focusRing: "#E8A63A" }}
-                                                placeholder="Enter email"
-                                            />
-                                        ) : (
-                                            <p className="text-lg font-semibold text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                                                {formData.email}
-                                            </p>
-                                        )}
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+                                        <input
+                                            type="text"
+                                            name="fullName"
+                                            value={formData.fullName}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:bg-gray-50"
+                                            style={{ '--tw-ring-color': '#E8A63A' }}
+                                        />
                                     </div>
-
-                                    {/* Role */}
                                     <div>
-                                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                                            Account Role
-                                        </label>
-                                        <div>
-                                            <span className={`inline-block px-4 py-2 rounded-lg text-sm font-semibold ${roleColors.badge}`}>
-                                                {getRoleLabel(formData.role)}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* User ID */}
-                                    <div>
-                                        <label className="text-sm font-semibold text-gray-700 mb-2 block">User ID</label>
-                                        <p className="text-sm text-gray-500 font-mono bg-gray-50 px-4 py-2 rounded-lg">
-                                            {user._id}
-                                        </p>
-                                    </div>
-
-                                    {/* Member Since */}
-                                    <div>
-                                        <label className="text-sm font-semibold text-gray-700 mb-2 block">Member Since</label>
-                                        <p className="text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg">
-                                            {new Date(user.createdAt).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric'
-                                            })}
-                                        </p>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                                        <input
+                                            type="text"
+                                            name="username"
+                                            value={formData.username}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:bg-gray-50"
+                                            style={{ '--tw-ring-color': '#E8A63A' }}
+                                        />
                                     </div>
                                 </div>
 
-                                {/* Save Button */}
-                                {isEditing && (
-                                    <div className="mt-8 pt-8 border-t border-gray-200 flex gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:bg-gray-50"
+                                        style={{ '--tw-ring-color': '#E8A63A' }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Role</label>
+                                    <input
+                                        type="text"
+                                        value={getRoleLabel(formData.role)}
+                                        disabled
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Buttons */}
+                            <div className="flex gap-4 mt-8">
+                                {!isEditing ? (
+                                    <button
+                                        onClick={() => setIsEditing(true)}
+                                        className="flex items-center gap-2 px-6 py-2 rounded-lg font-semibold text-white hover:opacity-90 transition"
+                                        style={{ backgroundColor: "#2c5f5d" }}
+                                    >
+                                        <FiEdit2 size={18} />
+                                        Edit Profile
+                                    </button>
+                                ) : (
+                                    <>
                                         <button
                                             onClick={handleSave}
                                             disabled={loading}
-                                            className="flex-1 flex items-center justify-center gap-2 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
-                                            style={{ backgroundColor: "#27a745" }}
+                                            className="flex items-center gap-2 px-6 py-2 rounded-lg font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition"
                                         >
-                                            {loading ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                    <span>Saving...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <FiSave size={18} />
-                                                    <span>Save Changes</span>
-                                                </>
-                                            )}
+                                            <FiSave size={18} />
+                                            {loading ? 'Saving...' : 'Save Changes'}
                                         </button>
-                                    </div>
-                                )}
-                                    </>
-                                )}
-
-                                {/* Notifications Tab */}
-                                {activeTab === 'notifications' && (
-                                    <>
-                                        <div className="space-y-8">
-                                            {/* Notification Channels */}
-                                            <div>
-                                                <h3 className="text-xl font-bold text-gray-900 mb-4">Notification Channels</h3>
-                                                <div className="space-y-4">
-                                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={notificationPreferences.email}
-                                                            onChange={(e) => handleNotificationToggle('email', e.target.checked)}
-                                                            className="w-5 h-5 rounded cursor-pointer"
-                                                        />
-                                                        <div>
-                                                            <p className="font-semibold text-gray-900">Email Notifications</p>
-                                                            <p className="text-sm text-gray-600">Receive updates via email</p>
-                                                        </div>
-                                                    </label>
-
-                                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={notificationPreferences.push}
-                                                            onChange={(e) => handleNotificationToggle('push', e.target.checked)}
-                                                            className="w-5 h-5 rounded cursor-pointer"
-                                                        />
-                                                        <div>
-                                                            <p className="font-semibold text-gray-900">Push Notifications</p>
-                                                            <p className="text-sm text-gray-600">Receive push notifications in your browser</p>
-                                                        </div>
-                                                    </label>
-
-                                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={notificationPreferences.sms}
-                                                            onChange={(e) => handleNotificationToggle('sms', e.target.checked)}
-                                                            className="w-5 h-5 rounded cursor-pointer"
-                                                        />
-                                                        <div>
-                                                            <p className="font-semibold text-gray-900">SMS Notifications</p>
-                                                            <p className="text-sm text-gray-600">Receive text messages for urgent alerts</p>
-                                                        </div>
-                                                    </label>
-                                                </div>
-                                            </div>
-
-                                            {/* Deadline Alerts */}
-                                            <div className="border-t pt-8">
-                                                <h3 className="text-xl font-bold text-gray-900 mb-4">Deadline Alerts</h3>
-                                                <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-4">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={notificationPreferences.deadlineAlerts.enabled}
-                                                        onChange={(e) => handleNotificationToggle('deadlineAlerts.enabled', e.target.checked)}
-                                                        className="w-5 h-5 rounded cursor-pointer"
-                                                    />
-                                                    <div>
-                                                        <p className="font-semibold text-gray-900">Enable Deadline Alerts</p>
-                                                        <p className="text-sm text-gray-600">Get notified about upcoming deadlines</p>
-                                                    </div>
-                                                </label>
-
-                                                {notificationPreferences.deadlineAlerts.enabled && (
-                                                    <div className="ml-4 space-y-3 pb-4 border-l-2 pl-4" style={{ borderColor: "#E8A63A" }}>
-                                                        <label className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={notificationPreferences.deadlineAlerts.oneWeekBefore}
-                                                                onChange={(e) => handleNotificationToggle('deadlineAlerts.oneWeekBefore', e.target.checked)}
-                                                                className="w-4 h-4 rounded cursor-pointer"
-                                                            />
-                                                            <div>
-                                                                <p className="font-semibold text-gray-900">1 Week Before</p>
-                                                                <p className="text-xs text-gray-600">Notify me 7 days before deadline</p>
-                                                            </div>
-                                                        </label>
-
-                                                        <label className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={notificationPreferences.deadlineAlerts.threeDaysBefore}
-                                                                onChange={(e) => handleNotificationToggle('deadlineAlerts.threeDaysBefore', e.target.checked)}
-                                                                className="w-4 h-4 rounded cursor-pointer"
-                                                            />
-                                                            <div>
-                                                                <p className="font-semibold text-gray-900">3 Days Before</p>
-                                                                <p className="text-xs text-gray-600">Notify me 3 days before deadline</p>
-                                                            </div>
-                                                        </label>
-
-                                                        <label className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={notificationPreferences.deadlineAlerts.oneDayBefore}
-                                                                onChange={(e) => handleNotificationToggle('deadlineAlerts.oneDayBefore', e.target.checked)}
-                                                                className="w-4 h-4 rounded cursor-pointer"
-                                                            />
-                                                            <div>
-                                                                <p className="font-semibold text-gray-900">1 Day Before</p>
-                                                                <p className="text-xs text-gray-600">Notify me 1 day before deadline</p>
-                                                            </div>
-                                                        </label>
-
-                                                        <label className="flex items-center gap-3 p-3 bg-red-50 rounded-lg cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={notificationPreferences.deadlineAlerts.sameDayAlert}
-                                                                onChange={(e) => handleNotificationToggle('deadlineAlerts.sameDayAlert', e.target.checked)}
-                                                                className="w-4 h-4 rounded cursor-pointer"
-                                                            />
-                                                            <div>
-                                                                <p className="font-semibold text-gray-900">Same Day Alert</p>
-                                                                <p className="text-xs text-gray-600">Notify me on the day of deadline</p>
-                                                            </div>
-                                                        </label>
-
-                                                        <label className="flex items-center gap-3 p-3 bg-rose-50 rounded-lg cursor-pointer border-2 border-rose-300">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={notificationPreferences.deadlineAlerts.escalationAlert}
-                                                                onChange={(e) => handleNotificationToggle('deadlineAlerts.escalationAlert', e.target.checked)}
-                                                                className="w-4 h-4 rounded cursor-pointer"
-                                                            />
-                                                            <div>
-                                                                <p className="font-semibold text-rose-900">Escalation Alert</p>
-                                                                <p className="text-xs text-rose-700">Urgent notification if deadline is missed</p>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Weekly Digest */}
-                                            <div className="border-t pt-8">
-                                                <h3 className="text-xl font-bold text-gray-900 mb-4">Weekly Summary</h3>
-                                                <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-4">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={notificationPreferences.weeklyDigest}
-                                                        onChange={(e) => handleNotificationToggle('weeklyDigest', e.target.checked)}
-                                                        className="w-5 h-5 rounded cursor-pointer"
-                                                    />
-                                                    <div>
-                                                        <p className="font-semibold text-gray-900">Weekly Digest</p>
-                                                        <p className="text-sm text-gray-600">Get a summary of activity each week</p>
-                                                    </div>
-                                                </label>
-
-                                                {notificationPreferences.weeklyDigest && (
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Day</label>
-                                                        <select
-                                                            value={notificationPreferences.weeklyDigestDay}
-                                                            onChange={(e) => handleNotificationToggle('weeklyDigestDay', e.target.value)}
-                                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0"
-                                                            style={{ focusRing: "#2c5f5d" }}
-                                                        >
-                                                            <option value="Monday">Monday</option>
-                                                            <option value="Tuesday">Tuesday</option>
-                                                            <option value="Wednesday">Wednesday</option>
-                                                            <option value="Thursday">Thursday</option>
-                                                            <option value="Friday">Friday</option>
-                                                            <option value="Saturday">Saturday</option>
-                                                            <option value="Sunday">Sunday</option>
-                                                        </select>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Quiet Hours */}
-                                            <div className="border-t pt-8">
-                                                <h3 className="text-xl font-bold text-gray-900 mb-4">Quiet Hours</h3>
-                                                <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={notificationPreferences.quietHours.enabled}
-                                                        onChange={(e) => handleNotificationToggle('quietHours.enabled', e.target.checked)}
-                                                        className="w-5 h-5 rounded cursor-pointer"
-                                                    />
-                                                    <div>
-                                                        <p className="font-semibold text-gray-900">Enable Quiet Hours</p>
-                                                        <p className="text-sm text-gray-600">Don't notify me during specific times</p>
-                                                    </div>
-                                                </label>
-
-                                                {notificationPreferences.quietHours.enabled && (
-                                                    <div className="grid grid-cols-2 gap-4 mt-4">
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
-                                                            <input
-                                                                type="time"
-                                                                value={notificationPreferences.quietHours.startTime}
-                                                                onChange={(e) => handleNotificationToggle('quietHours.startTime', e.target.value)}
-                                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
-                                                            <input
-                                                                type="time"
-                                                                value={notificationPreferences.quietHours.endTime}
-                                                                onChange={(e) => handleNotificationToggle('quietHours.endTime', e.target.value)}
-                                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Save Button */}
-                                            <div className="border-t pt-8">
-                                                <button
-                                                    onClick={saveNotificationPreferences}
-                                                    disabled={savingPreferences}
-                                                    className="w-full flex items-center justify-center gap-2 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
-                                                    style={{ backgroundColor: "#2c5f5d" }}
-                                                >
-                                                    {savingPreferences ? (
-                                                        <>
-                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                            <span>Saving...</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <FiSave size={18} />
-                                                            <span>Save Notification Settings</span>
-                                                        </>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </div>
+                                        <button
+                                            onClick={handleCancel}
+                                            className="flex items-center gap-2 px-6 py-2 rounded-lg font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 transition"
+                                        >
+                                            <FiX size={18} />
+                                            Cancel
+                                        </button>
                                     </>
                                 )}
                             </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Notifications Tab */}
+                    {activeTab === 'notifications' && (
+                        <div className="bg-white rounded-lg shadow-md p-8">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Notification Preferences</h2>
+
+                            <div className="space-y-8">
+                                {/* Notification Channels */}
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-900 mb-4">Notification Channels</h3>
+                                    <div className="space-y-3">
+                                        {['email', 'push', 'sms'].map((channel) => (
+                                            <label key={channel} className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={notificationPreferences[channel]}
+                                                    onChange={(e) => handleNotificationToggle(channel, e.target.checked)}
+                                                    className="w-5 h-5 rounded cursor-pointer"
+                                                />
+                                                <div>
+                                                    <p className="font-semibold text-gray-900 capitalize">{channel} Notifications</p>
+                                                    <p className="text-sm text-gray-600">
+                                                        {channel === 'email' && 'Receive notifications via email'}
+                                                        {channel === 'push' && 'Receive push notifications in your browser'}
+                                                        {channel === 'sms' && 'Receive text messages for urgent alerts'}
+                                                    </p>
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Deadline Alerts */}
+                                <div className="border-t pt-8">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-4">Deadline Alerts</h3>
+                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={notificationPreferences.deadlineAlerts.enabled}
+                                            onChange={(e) => handleNotificationToggle('deadlineAlerts.enabled', e.target.checked)}
+                                            className="w-5 h-5 rounded cursor-pointer"
+                                        />
+                                        <div>
+                                            <p className="font-semibold text-gray-900">Enable Deadline Alerts</p>
+                                            <p className="text-sm text-gray-600">Get notified about upcoming deadlines</p>
+                                        </div>
+                                    </label>
+
+                                    {notificationPreferences.deadlineAlerts.enabled && (
+                                        <div className="ml-4 space-y-3 pb-4 border-l-2 pl-4" style={{ borderColor: "#E8A63A" }}>
+                                            {[
+                                                { key: 'oneWeekBefore', label: '1 Week Before', desc: 'Notify me 7 days before deadline', bg: 'bg-blue-50' },
+                                                { key: 'threeDaysBefore', label: '3 Days Before', desc: 'Notify me 3 days before deadline', bg: 'bg-amber-50' },
+                                                { key: 'oneDayBefore', label: '1 Day Before', desc: 'Notify me 1 day before deadline', bg: 'bg-orange-50' },
+                                                { key: 'sameDayAlert', label: 'Same Day Alert', desc: 'Notify me on the day of deadline', bg: 'bg-red-50' },
+                                                { key: 'escalationAlert', label: 'Escalation Alert', desc: 'Notify me when deadline is missed', bg: 'bg-red-100' }
+                                            ].map((alert) => (
+                                                <label key={alert.key} className={`flex items-center gap-3 p-3 ${alert.bg} rounded-lg cursor-pointer`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={notificationPreferences.deadlineAlerts[alert.key]}
+                                                        onChange={(e) => handleNotificationToggle(`deadlineAlerts.${alert.key}`, e.target.checked)}
+                                                        className="w-4 h-4 rounded cursor-pointer"
+                                                    />
+                                                    <div>
+                                                        <p className="font-semibold text-gray-900 text-sm">{alert.label}</p>
+                                                        <p className="text-xs text-gray-600">{alert.desc}</p>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Weekly Digest */}
+                                <div className="border-t pt-8">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-4">Weekly Digest</h3>
+                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={notificationPreferences.weeklyDigest}
+                                            onChange={(e) => handleNotificationToggle('weeklyDigest', e.target.checked)}
+                                            className="w-5 h-5 rounded cursor-pointer"
+                                        />
+                                        <div>
+                                            <p className="font-semibold text-gray-900">Enable Weekly Digest</p>
+                                            <p className="text-sm text-gray-600">Get a summary of your week every {notificationPreferences.weeklyDigestDay}</p>
+                                        </div>
+                                    </label>
+
+                                    {notificationPreferences.weeklyDigest && (
+                                        <div className="ml-4">
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Delivery Day</label>
+                                            <select
+                                                value={notificationPreferences.weeklyDigestDay}
+                                                onChange={(e) => handleNotificationToggle('weeklyDigestDay', e.target.value)}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                                                style={{ '--tw-ring-color': '#E8A63A' }}
+                                            >
+                                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                                                    <option key={day} value={day}>{day}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Quiet Hours */}
+                                <div className="border-t pt-8">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-4">Quiet Hours</h3>
+                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={notificationPreferences.quietHours.enabled}
+                                            onChange={(e) => handleNotificationToggle('quietHours.enabled', e.target.checked)}
+                                            className="w-5 h-5 rounded cursor-pointer"
+                                        />
+                                        <div>
+                                            <p className="font-semibold text-gray-900">Enable Quiet Hours</p>
+                                            <p className="text-sm text-gray-600">Pause notifications during specific times</p>
+                                        </div>
+                                    </label>
+
+                                    {notificationPreferences.quietHours.enabled && (
+                                        <div className="ml-4 grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time</label>
+                                                <input
+                                                    type="time"
+                                                    value={notificationPreferences.quietHours.startTime}
+                                                    onChange={(e) => handleNotificationToggle('quietHours.startTime', e.target.value)}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                                                    style={{ '--tw-ring-color': '#E8A63A' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-2">End Time</label>
+                                                <input
+                                                    type="time"
+                                                    value={notificationPreferences.quietHours.endTime}
+                                                    onChange={(e) => handleNotificationToggle('quietHours.endTime', e.target.value)}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                                                    style={{ '--tw-ring-color': '#E8A63A' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Save Button */}
+                            <div className="flex gap-4 mt-8">
+                                <button
+                                    onClick={saveNotificationPreferences}
+                                    disabled={savingPreferences}
+                                    className="flex items-center gap-2 px-6 py-2 rounded-lg font-semibold text-white hover:opacity-90 disabled:opacity-50 transition"
+                                    style={{ backgroundColor: "#2c5f5d" }}
+                                >
+                                    <FiSave size={18} />
+                                    {savingPreferences ? 'Saving...' : 'Save Preferences'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
