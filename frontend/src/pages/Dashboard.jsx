@@ -15,6 +15,7 @@ import FAQ from "./FAQ";
 import AIAssistant from "./AIAssistant";
 import ManageSponsors from "./ManageSponsors";
 import ManageStudents from "./ManageStudents";
+import ManageUsers from "./ManageUsers";
 import AllSponsors from "./AllSponsors";
 import FortnightPage from "./FortnightPage";
 import DocumentsPage from "./DocumentsPage";
@@ -126,9 +127,9 @@ const Dashboard = () => {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <div className="mb-2" style={{ color: "#E8A63A" }}>
-                                                <span className="text-sm font-semibold tracking-widest">● SPONSOR PANEL</span>
+                                                <span className="text-sm font-semibold tracking-widest">● SUPERVISOR PANEL</span>
                                             </div>
-                                            <h1 className="text-4xl font-bold text-white mb-2">Sponsor Dashboard</h1>
+                                            <h1 className="text-4xl font-bold text-white mb-2">Supervisor Dashboard</h1>
                                             <p className="text-gray-300">Review student work, manage cycles, and provide feedback</p>
                                         </div>
                                         <NotificationCenter />
@@ -205,7 +206,7 @@ const Dashboard = () => {
                                         {/* Sponsor Toolkit */}
                                         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                                             <div className="mb-6">
-                                                <h2 className="text-xl font-bold text-gray-800">Sponsor Toolkit</h2>
+                                                <h2 className="text-xl font-bold text-gray-800">Supervisor Toolkit</h2>
                                                 <p className="text-gray-600 text-sm mt-1">The most used actions for this role</p>
                                             </div>
 
@@ -364,6 +365,16 @@ const Dashboard = () => {
                                             </button>
 
                                             <button
+                                                onClick={() => setView('Manage Users')}
+                                                className="p-4 rounded-lg border border-gray-200 hover:shadow-md hover:border-gray-300 transition text-left"
+                                                style={{ backgroundColor: "rgba(232, 166, 58, 0.05)" }}
+                                            >
+                                                <div className="text-2xl mb-2">🔧</div>
+                                                <h3 className="font-semibold text-gray-800 text-sm">Manage All Users</h3>
+                                                <p className="text-gray-600 text-xs mt-1">Add, edit, and delete any user account</p>
+                                            </button>
+
+                                            <button
                                                 onClick={() => setView('All Sponsors')}
                                                 className="p-4 rounded-lg border border-gray-200 hover:shadow-md hover:border-gray-300 transition text-left"
                                                 style={{ backgroundColor: "rgba(100, 150, 150, 0.05)" }}
@@ -480,6 +491,9 @@ const Dashboard = () => {
             case 'Manage Students':
                 return <ManageStudents />;
 
+            case 'Manage Users':
+                return <ManageUsers />;
+
             case 'All Sponsors':
                 return <AllSponsors />;
 
@@ -491,7 +505,7 @@ const Dashboard = () => {
                 return <DocumentsPage />;
 
             case 'Student Home':
-                return <StudentHome />;
+                return <StudentHome onNavigate={setView} />;
 
             case 'Project Milestones':
                 return <ProjectMilestoneTimeline />;
@@ -526,12 +540,24 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="h-screen w-screen bg-gray-50 flex overflow-hidden font-sans">
+        <div className="h-screen w-screen bg-gray-50 flex overflow-hidden font-sans relative">
             {/* 1. Main Navigation Sidebar */}
             <Sidebar view={view} setView={setView} />
 
             {/* 2. Content Area based on View */}
             {renderContent()}
+
+            {/* 3. Floating AI Assistant Button */}
+            {view !== 'AI Assistant' && (
+                <button
+                    onClick={() => setView('AI Assistant')}
+                    className="fixed bottom-8 right-8 w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center z-50 text-2xl"
+                    style={{ backgroundColor: "#2c5f5d" }}
+                    title="Open AI Assistant"
+                >
+                    🤖
+                </button>
+            )}
         </div>
     );
 };
