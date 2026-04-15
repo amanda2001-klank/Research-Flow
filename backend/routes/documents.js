@@ -37,6 +37,21 @@ router.get('/group/:groupId', documentController.getDocumentsByGroup);
 // GET /api/documents/sponsor/:sponsorId - Get documents by sponsor
 router.get('/sponsor/:sponsorId', documentController.getDocumentsBySponsor);
 
+// GET /api/documents/checklist/:groupId - Milestone checklist by group
+router.get('/checklist/:groupId', documentController.getMilestoneChecklist);
+
+// GET /api/documents/rules/:groupId - Submission rules by group
+router.get('/rules/:groupId', documentController.getDocumentRules);
+
+// PUT /api/documents/rules/:groupId - Create/update submission rules
+router.put('/rules/:groupId', documentController.upsertDocumentRules);
+
+// GET /api/documents/:id/compare?from=1&to=2 - Compare two versions
+router.get('/:id/compare', documentController.compareDocumentVersions);
+
+// PATCH /api/documents/:id/feedback-actions/:actionId - Mark feedback action status
+router.patch('/:id/feedback-actions/:actionId', documentController.updateFeedbackActionStatus);
+
 // GET /api/documents/:id - Get single document
 router.get('/:id', documentController.getDocumentById);
 

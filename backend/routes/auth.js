@@ -1,40 +1,6 @@
 const router = require('express').Router();
 const User = require('../models/User');
-const multer = require('multer');
-const path = require('path');
-const crypto = require('crypto');
-const fs = require('fs');
-
-// Avatar upload storage configuration
-const avatarStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = path.join(__dirname, '../uploads/avatars');
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        const unique = crypto.randomBytes(8).toString('hex');
-        const ext = path.extname(file.originalname);
-        cb(null, `${unique}${ext}`);
-    }
-});
-
-const avatarFileFilter = (req, file, cb) => {
-    const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-    if (allowed.includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error('Only image files are allowed'));
-    }
-};
-
-const avatarUpload = multer({
-    storage: avatarStorage,
-    fileFilter: avatarFileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 } // 5 MB
-});
+const avatarUpload = require('../middleware/avatarUpload');
 
 router.post('/register', async (req, res) => {
     try {
