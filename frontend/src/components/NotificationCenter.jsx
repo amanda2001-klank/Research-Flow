@@ -41,7 +41,7 @@ const NotificationCenter = () => {
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 text-gray-600 hover:text-indigo-600 transition"
+       className="relative p-2 text-black hover:text-gray-700 transition transform hover:scale-110"
             >
                 <IoNotifications size={24} />
                 {unreadCount > 0 && (

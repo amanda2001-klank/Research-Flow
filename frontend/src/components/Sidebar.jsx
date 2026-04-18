@@ -54,10 +54,10 @@ const Sidebar = ({ view, setView }) => {
     const navItems = getNavItems();
 
     return (
-        <div className="w-[260px] bg-[#2F4F4F] text-gray-300 flex flex-col h-full font-sans">
+       <div className="w-[260px] bg-[#2F4F4F] text-gray-300 flex flex-col h-screen overflow-y-auto font-sans">
             {/* Logo Section */}
             <div className="p-6 flex items-center justify-center border-b border-gray-700">
-                <img src="/logo.svg" alt="ResearchFlow" className="h-14 object-contain" />
+                <img src="/logo2.png" alt="ResearchFlow" className="h-24 object-contain" />
             </div>
 
             {/* Navigation */}
