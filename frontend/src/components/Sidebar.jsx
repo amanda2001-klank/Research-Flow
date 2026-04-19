@@ -1,10 +1,12 @@
 import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { FaGraduationCap, FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory } from "react-icons/fa";
+import { FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory, FaFlask } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 
 const Sidebar = ({ view, setView }) => {
     const { user, dispatch } = useContext(AuthContext);
+    const navigate = useNavigate();
 
     const handleLogout = () => {
         dispatch({ type: "LOGOUT" });
@@ -19,6 +21,7 @@ const Sidebar = ({ view, setView }) => {
                 { name: "Announcements", icon: <FaBullhorn size={20} /> },
                 { name: "Manage Sponsors", icon: <FaUserShield size={20} /> },
                 { name: "Manage Students", icon: <FaUserGraduate size={20} /> },
+                { name: "Manage Users", icon: <FaUsers size={20} /> },
                 { name: "All Sponsors", icon: <FaUsers size={20} /> },
             ];
         } else if (user?.role === 'sponsor') {
@@ -34,6 +37,7 @@ const Sidebar = ({ view, setView }) => {
             // Student
             return [
                 { name: "Student Home", icon: <FaHome size={20} /> },
+                { name: "Research Ideas", icon: <FaFlask size={20} /> },
                 { name: "Project Milestones", icon: <FaChartLine size={20} /> },
                 { name: "Research Timeline", icon: <FaHistory size={20} /> },
                 { name: "Plagiarism Checker", icon: <FaShieldAlt size={20} /> },
@@ -50,18 +54,10 @@ const Sidebar = ({ view, setView }) => {
     const navItems = getNavItems();
 
     return (
-        <div className="w-[260px] bg-[#2F4F4F] text-gray-300 flex flex-col h-full font-sans">
+       <div className="w-[260px] bg-[#2F4F4F] text-gray-300 flex flex-col h-screen overflow-y-auto font-sans">
             {/* Logo Section */}
-            <div className="p-6 flex items-center gap-3">
-                <div className="p-2 bg-[#FFD700] rounded-lg">
-                    <FaGraduationCap className="text-[#2F4F4F] text-xl" />
-                </div>
-                <div>
-                    <h1 className="text-white font-bold text-lg tracking-wide">ResearchFlow</h1>
-                    <span className="text-xs uppercase tracking-wider text-gray-400 font-medium">
-                        {user?.role || 'User'}
-                    </span>
-                </div>
+            <div className="p-6 flex items-center justify-center border-b border-gray-700">
+                <img src="/logo2.png" alt="ResearchFlow" className="h-24 object-contain" />
             </div>
 
             {/* Navigation */}
@@ -83,18 +79,24 @@ const Sidebar = ({ view, setView }) => {
 
             {/* User Profile & Logout */}
             <div className="p-4 border-t border-[#3A5F5F]">
-                <div className="flex items-center gap-3 mb-4">
+                <div 
+                    onClick={() => navigate("/profile")}
+                    className="flex items-center gap-3 mb-4 cursor-pointer hover:opacity-80 transition"
+                >
                     <div className="relative">
                         <img
-                            src={`https://ui-avatars.com/api/?name=${user?.username}&background=FFD700&color=2F4F4F`}
+                            src={user?.avatar ? `http://localhost:5000${user.avatar}` : `https://ui-avatars.com/api/?name=${user?.username}&background=FFD700&color=2F4F4F`}
                             alt="User"
-                            className="w-10 h-10 rounded-full border-2 border-[#3A5F5F]"
+                            className="w-10 h-10 rounded-full border-2 border-[#3A5F5F] object-cover"
+                            onError={(e) => {
+                                e.target.src = `https://ui-avatars.com/api/?name=${user?.username}&background=FFD700&color=2F4F4F`;
+                            }}
                         />
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#2F4F4F]"></div>
                     </div>
                     <div className="flex flex-col">
                         <span className="text-white text-sm font-semibold">{user?.fullName || user?.username}</span>
-                        <span className="text-xs text-gray-400">ID: 2026-RF-02</span>
+                        <span className="text-xs text-gray-400">{user?.email}</span>
                     </div>
                 </div>
 
