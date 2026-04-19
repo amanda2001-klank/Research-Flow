@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory, FaFlask } from "react-icons/fa";
+import { FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory, FaFlask, FaTicketAlt, FaHeadset } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 
 const Sidebar = ({ view, setView }) => {
@@ -23,6 +23,7 @@ const Sidebar = ({ view, setView }) => {
                 { name: "Manage Students", icon: <FaUserGraduate size={20} /> },
                 { name: "Manage Users", icon: <FaUsers size={20} /> },
                 { name: "All Sponsors", icon: <FaUsers size={20} /> },
+                { name: "Support Tickets", icon: <FaTicketAlt size={20} /> },
             ];
         } else if (user?.role === 'sponsor') {
             return [
@@ -47,6 +48,7 @@ const Sidebar = ({ view, setView }) => {
                 { name: "Announcements", icon: <FaBullhorn size={20} /> },
                 { name: "Fortnight Log", icon: <FaClipboardList size={20} /> },
                 { name: "Documents", icon: <FaFileAlt size={20} /> },
+                { name: "Raise Ticket", icon: <FaHeadset size={20} /> },
             ];
         }
     };

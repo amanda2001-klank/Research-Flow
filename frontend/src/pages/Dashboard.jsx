@@ -24,6 +24,9 @@ import ProjectMilestoneTimeline from "./ProjectMilestoneTimeline";
 import PlagiarismChecker from "./PlagiarismChecker";
 import ResearchTimeline from "./ResearchTimeline";
 import ResearchIdeas from "./ResearchIdeas";
+import RaiseTicket from "./RaiseTicket";
+import MyTickets from "./MyTickets";
+import ManageTickets from "./ManageTickets";
 
 const Dashboard = () => {
     const [chatWith, setChatWith] = useState(null);
@@ -518,6 +521,15 @@ const Dashboard = () => {
 
             case 'Research Ideas':
                 return <ResearchIdeas />;
+
+            case 'Raise Ticket':
+                return <RaiseTicket setView={setView} />;
+
+            case 'My Tickets':
+                return <MyTickets />;
+
+            case 'Support Tickets':
+                return <ManageTickets />;
 
             default:
                 return (
