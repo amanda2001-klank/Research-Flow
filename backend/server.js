@@ -50,6 +50,7 @@ const faqRoute = require('./routes/faq');
 const fortnightRoute = require('./routes/fortnight');
 const documentRoute = require('./routes/documents');
 const evaluationRoute = require('./routes/evaluations');
+const ticketRoute = require('./routes/tickets');
 
 // Make io accessible to our router
 app.use((req, res, next) => {
@@ -67,6 +68,7 @@ app.use('/api/faq', faqRoute);
 app.use('/api/fortnight', fortnightRoute);
 app.use('/api/documents', documentRoute);
 app.use('/api/evaluations', evaluationRoute);
+app.use('/api/tickets', ticketRoute);
 
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);

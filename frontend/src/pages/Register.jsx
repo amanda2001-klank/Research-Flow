@@ -75,14 +75,10 @@ const Register = () => {
                 <div className="w-full max-w-md relative z-10 py-6">
                     {/* Header */}
                     <div className="text-center mb-6">
-                       <div className="flex items-center justify-center mb-4">
-    <img 
-        src="/logo2.png" 
-        alt="ResearchFlow"
-        className="h-24 w-auto object-contain drop-shadow-md"
-    />
-</div>
-                        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight mb-1"></h2>
+                        <div className="inline-flex items-center justify-center w-14 h-14 bg-white rounded-2xl shadow-lg mb-4 transform transition hover:-translate-y-1 border border-slate-100">
+                            <FaGraduationCap className="text-[#2F4F4F] text-3xl" />
+                        </div>
+                        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight mb-1">ResearchFlow</h2>
                         <p className="text-sm text-slate-500 font-medium">Create your specialized account</p>
                     </div>
 
