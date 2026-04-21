@@ -4,7 +4,8 @@ import { AuthContext } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import UserProfile from "./pages/UserProfile";
+import StudentResearchForm from "./pages/StudentResearchForm";
+import SupervisorAllocation from "./pages/SupervisorAllocation";
 
 function App() {
   const { user } = useContext(AuthContext);
@@ -14,7 +15,14 @@ function App() {
       <Route path="/" element={user ? <Dashboard /> : <Navigate to="/login" />} />
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to="/" /> : <Register />} />
-      <Route path="/profile" element={user ? <UserProfile /> : <Navigate to="/login" />} />
+      <Route
+        path="/student-research"
+        element={user ? <StudentResearchForm /> : <Navigate to="/login" />}
+      />
+      <Route
+        path="/supervisor-allocation"
+        element={user ? <SupervisorAllocation /> : <Navigate to="/login" />}
+      />
     </Routes>
   );
 }

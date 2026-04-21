@@ -5,7 +5,7 @@ const requireRole = (allowedRoles) => {
     return (req, res, next) => {
         // In a real app, extract user from JWT token
         // For this demo, we'll expect userId and role in request body or query
-        const userRole = (req.body && req.body.userRole) || (req.query && req.query.userRole);
+        const userRole = req.body.userRole || req.query.userRole;
 
         if (!userRole) {
             return res.status(401).json({ error: 'Unauthorized - No role provided' });
@@ -20,7 +20,7 @@ const requireRole = (allowedRoles) => {
 };
 
 const requireAdmin = (req, res, next) => {
-    const userRole = (req.body && req.body.userRole) || (req.query && req.query.userRole);
+    const userRole = req.body.userRole || req.query.userRole;
 
     if (userRole !== 'admin') {
         return res.status(403).json({ error: 'Forbidden - Admin access required' });
@@ -30,7 +30,7 @@ const requireAdmin = (req, res, next) => {
 };
 
 const requireSponsorOrAdmin = (req, res, next) => {
-    const userRole = (req.body && req.body.userRole) || (req.query && req.query.userRole);
+    const userRole = req.body.userRole || req.query.userRole;
 
     if (userRole !== 'admin' && userRole !== 'sponsor') {
         return res.status(403).json({ error: 'Forbidden - Sponsor or Admin access required' });

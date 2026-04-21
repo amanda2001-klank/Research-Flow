@@ -1,7 +1,8 @@
 import { useState, useEffect, useContext } from "react";
-import { FaUserGraduate, FaCheck, FaTimes, FaUsers, FaExclamationTriangle, FaBell } from "react-icons/fa";
+import { FaUserGraduate, FaCheck, FaTimes, FaUsers, FaExclamationTriangle, FaBell, FaSignOutAlt, FaHome, FaUserEdit, FaSave } from "react-icons/fa";
 import { AuthContext } from "../context/AuthContext";
 import { SocketContext } from "../context/SocketContext";
+import axios from "axios";
 
 // Mock data: Start empty in real world, but keeping a few for visual context in the demo
 const INITIAL_REQUESTS = [
@@ -11,24 +12,86 @@ const INITIAL_REQUESTS = [
 const SupervisorAllocation = () => {
     const { user } = useContext(AuthContext);
     const { socket } = useContext(SocketContext);
-    
-    // Use localStorage to simulate a database for the demo so requests aren't lost on reload
-    const [requests, setRequests] = useState(() => {
-        const saved = localStorage.getItem(`supervisorRequests_${user?._id}`);
-        return saved ? JSON.parse(saved) : INITIAL_REQUESTS;
-    });
-    
-    const [acceptedGroups, setAcceptedGroups] = useState(() => {
-        const saved = localStorage.getItem(`acceptedGroups_${user?._id}`);
-        return saved ? JSON.parse(saved) : [];
-    });
 
+    const [requests, setRequests] = useState([]);
+    const [acceptedGroups, setAcceptedGroups] = useState([]);
+    const [dataLoaded, setDataLoaded] = useState(false);
+
+    // Initial load when user becomes available
     useEffect(() => {
-        if (user?._id) {
+        if (user?._id && !dataLoaded) {
+            const savedReqs = localStorage.getItem(`supervisorRequests_${user._id}`);
+            if (savedReqs) setRequests(JSON.parse(savedReqs));
+            else setRequests(INITIAL_REQUESTS);
+
+            const savedGroups = localStorage.getItem(`acceptedGroups_${user._id}`);
+            if (savedGroups) setAcceptedGroups(JSON.parse(savedGroups));
+
+            setDataLoaded(true);
+        }
+    }, [user, dataLoaded]);
+
+    // Save changes to offline storage
+    useEffect(() => {
+        if (user?._id && dataLoaded) {
             localStorage.setItem(`supervisorRequests_${user._id}`, JSON.stringify(requests));
             localStorage.setItem(`acceptedGroups_${user._id}`, JSON.stringify(acceptedGroups));
         }
-    }, [requests, acceptedGroups, user?._id]);
+    }, [requests, acceptedGroups, user, dataLoaded]);
+
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [profileData, setProfileData] = useState({
+        avatar: user?.avatar || "",
+        expertise: user?.expertise || "",
+        experienceYears: user?.experienceYears || "",
+        skills: user?.skills || "",
+        interests: user?.interests || ""
+    });
+    const [profileErrors, setProfileErrors] = useState({});
+
+    useEffect(() => {
+        if (user) {
+            setProfileData({
+                avatar: user.avatar || "",
+                expertise: user.expertise || "",
+                experienceYears: user.experienceYears || "",
+                skills: user.skills || "",
+                interests: user.interests || ""
+            });
+        }
+    }, [user]);
+
+    const validateProfile = () => {
+        const errors = {};
+        if (!String(profileData.expertise).trim()) errors.expertise = "Expertise is required";
+        if (!profileData.experienceYears || isNaN(profileData.experienceYears) || Number(profileData.experienceYears) < 0) {
+            errors.experienceYears = "Enter valid years of experience";
+        }
+        if (!String(profileData.skills).trim()) errors.skills = "Skills are required";
+        if (!String(profileData.interests).trim()) errors.interests = "Interests are required";
+        setProfileErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleProfileSubmit = async (e) => {
+        e.preventDefault();
+        if (!validateProfile()) return;
+
+        try {
+            await axios.put(`http://localhost:5000/api/auth/${user._id}`, {
+                avatar: profileData.avatar,
+                expertise: profileData.expertise,
+                experienceYears: Number(profileData.experienceYears),
+                skills: profileData.skills,
+                interests: profileData.interests
+            });
+            setToastMessage({ type: "success", text: "Matching profile updated successfully!" });
+            setIsProfileModalOpen(false);
+        } catch (err) {
+            console.error("Failed to update profile", err);
+            setToastMessage({ type: "error", text: "Failed to update profile." });
+        }
+    };
 
     const [toastMessage, setToastMessage] = useState(null);
     const MAX_GROUPS = 2; // Limit limit to 2 groups per supervisor
@@ -49,7 +112,9 @@ const SupervisorAllocation = () => {
             const handleMessage = (data) => {
                 if (data.type === "NEW_REQUEST") {
                     setRequests(prev => [...prev, data.requestData]);
-                    setToastMessage({ type: "success", text: `New request received for topic: ${data.requestData.topic.substring(0,20)}...` });
+                    setToastMessage({ type: "success", text: `New request received for topic: ${data.requestData.topic.substring(0, 20)}...` });
+                } else if (data.type === "CANCEL_REQUEST") {
+                    setRequests(prev => prev.filter(r => r.id !== data.requestId));
                 }
             };
 
@@ -60,12 +125,12 @@ const SupervisorAllocation = () => {
 
     const handleAccept = (request) => {
         if (isFull) return; // Prevent if theoretically trying to bypass
-        
+
         setAcceptedGroups([...acceptedGroups, request]);
         setRequests(requests.filter(r => r.id !== request.id));
         setToastMessage({ type: "success", text: `You have successfully accepted ${request.groupId}.` });
 
-        // Notify student back
+        // Notify student back (if online)
         if (socket && request.studentId) {
             socket.emit("send_message", {
                 room: request.studentId,
@@ -74,13 +139,20 @@ const SupervisorAllocation = () => {
                 sponsorId: user?._id
             });
         }
+
+        if (request.studentId && user?._id) {
+            const studentKey = `myRequests_${request.studentId}`;
+            const studentRequests = JSON.parse(localStorage.getItem(studentKey) || "[]");
+            const updated = studentRequests.map(r => r.sponsorId === user._id ? { ...r, status: "Accepted" } : r);
+            localStorage.setItem(studentKey, JSON.stringify(updated));
+        }
     };
 
     const handleReject = (request) => {
         // Remove from requests list
         setRequests(requests.filter(r => r.id !== request.id));
-        
-        // Notify student back
+
+        // Notify student back (if online)
         if (socket && request.studentId) {
             socket.emit("send_message", {
                 room: request.studentId,
@@ -90,7 +162,40 @@ const SupervisorAllocation = () => {
             });
         }
 
-        setToastMessage({ type: "error", text: `Group ${request.groupId} has been rejected. The students have been notified in real-time.` });
+        if (request.studentId && user?._id) {
+            const studentKey = `myRequests_${request.studentId}`;
+            const studentRequests = JSON.parse(localStorage.getItem(studentKey) || "[]");
+            const updated = studentRequests.map(r => r.sponsorId === user._id ? { ...r, status: "Rejected" } : r);
+            localStorage.setItem(studentKey, JSON.stringify(updated));
+        }
+
+        setToastMessage({ type: "error", text: `Group ${request.groupId} has been rejected.` });
+    };
+
+    const handleRemoveGroup = (group) => {
+        // Remove from local state
+        setAcceptedGroups(prev => prev.filter(g => g.id !== group.id));
+
+        // Notify student back (if online)
+        if (socket && group.studentId) {
+            socket.emit("send_message", {
+                room: group.studentId,
+                type: "GROUP_REMOVED",
+                sponsorName: user?.fullName || user?.username,
+                sponsorId: user?._id,
+                groupId: group.groupId
+            });
+        }
+
+        if (group.studentId && user?._id) {
+            const studentKey = `myRequests_${group.studentId}`;
+            const studentRequests = JSON.parse(localStorage.getItem(studentKey) || "[]");
+            // Change status to Rejected so they know the supervision was terminated
+            const updated = studentRequests.map(r => r.sponsorId === user._id ? { ...r, status: "Rejected" } : r);
+            localStorage.setItem(studentKey, JSON.stringify(updated));
+        }
+
+        setToastMessage({ type: "success", text: `Group ${group.groupId} has been removed from your supervision.` });
     };
 
     return (
@@ -103,14 +208,126 @@ const SupervisorAllocation = () => {
                 </div>
             )}
 
+            {isProfileModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fadeIn">
+                    <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-6 text-white flex justify-between items-center shrink-0" style={{ backgroundColor: "#2c5f5d" }}>
+                            <div>
+                                <h3 className="text-2xl font-bold">Matching Profile</h3>
+                                <p className="text-gray-200 text-sm">Update your expertise so groups can find you</p>
+                            </div>
+                            <button onClick={() => setIsProfileModalOpen(false)} className="text-white hover:text-gray-200 transition-colors p-2 text-xl">&times;</button>
+                        </div>
+                        <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
+                            <form id="profileForm" onSubmit={handleProfileSubmit} className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-800 mb-2">Profile Picture URL</label>
+                                    <input 
+                                        type="url" 
+                                        placeholder="e.g. https://i.pravatar.cc/150" 
+                                        value={profileData.avatar}
+                                        onChange={(e) => setProfileData({...profileData, avatar: e.target.value})}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-200 transition-all outline-none bg-gray-50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-800 mb-2">Primary Expertise</label>
+                                    <select 
+                                        value={profileData.expertise}
+                                        onChange={(e) => setProfileData({...profileData, expertise: e.target.value})}
+                                        className={`w-full px-4 py-3 rounded-xl border ${profileErrors.expertise ? 'border-red-400' : 'border-gray-200'} focus:ring-2 focus:ring-blue-200 transition-all outline-none bg-gray-50 bg-white`}
+                                    >
+                                        <option value="" disabled>Select Expertise Domain</option>
+                                        <option value="Artificial Intelligence">Artificial Intelligence</option>
+                                        <option value="Cyber Security">Cyber Security</option>
+                                        <option value="Data Science">Data Science</option>
+                                        <option value="Software Engineering">Software Engineering</option>
+                                        <option value="Cloud Computing">Cloud Computing</option>
+                                        <option value="Information Systems">Information Systems</option>
+                                    </select>
+                                    {profileErrors.expertise && <p className="text-xs text-red-500 font-semibold mt-1">{profileErrors.expertise}</p>}
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <label className="block text-sm font-bold text-gray-800 mb-2">Years of Experience</label>
+                                        <select 
+                                            value={profileData.experienceYears}
+                                            onChange={(e) => setProfileData({...profileData, experienceYears: e.target.value})}
+                                            className={`w-full px-4 py-3 rounded-xl border ${profileErrors.experienceYears ? 'border-red-400' : 'border-gray-200'} focus:ring-2 focus:ring-blue-200 transition-all outline-none bg-gray-50 bg-white`}
+                                        >
+                                            <option value="" disabled>Select Years</option>
+                                            {[...Array(19)].map((_, i) => (
+                                                <option key={i+1} value={i+1}>{i+1} {i+1 === 1 ? 'Year' : 'Years'}</option>
+                                            ))}
+                                            <option value="20">20+ Years</option>
+                                        </select>
+                                        {profileErrors.experienceYears && <p className="text-xs text-red-500 font-semibold mt-1">{profileErrors.experienceYears}</p>}
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <label className="block text-sm font-bold text-gray-800 mb-2">Core Skills</label>
+                                        <select 
+                                            value={profileData.skills}
+                                            onChange={(e) => setProfileData({...profileData, skills: e.target.value})}
+                                            className={`w-full px-4 py-3 rounded-xl border ${profileErrors.skills ? 'border-red-400' : 'border-gray-200'} focus:ring-2 focus:ring-blue-200 transition-all outline-none bg-gray-50 bg-white`}
+                                        >
+                                            <option value="" disabled>Select Core Skill</option>
+                                            <option value="Machine Learning">Machine Learning</option>
+                                            <option value="Natural Language Processing">Natural Language Processing</option>
+                                            <option value="Network Security">Network Security</option>
+                                            <option value="Big Data Analytics">Big Data Analytics</option>
+                                            <option value="Agile Methodologies">Agile Methodologies</option>
+                                            <option value="Web/Mobile Development">Web/Mobile Development</option>
+                                            <option value="Blockchain Technology">Blockchain Technology</option>
+                                        </select>
+                                        {profileErrors.skills && <p className="text-xs text-red-500 font-semibold mt-1">{profileErrors.skills}</p>}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-800 mb-2">Research Interests</label>
+                                    <select 
+                                        value={profileData.interests}
+                                        onChange={(e) => setProfileData({...profileData, interests: e.target.value})}
+                                        className={`w-full px-4 py-3 rounded-xl border ${profileErrors.interests ? 'border-red-400' : 'border-gray-200'} focus:ring-2 focus:ring-blue-200 transition-all outline-none bg-gray-50 bg-white`}
+                                    >
+                                        <option value="" disabled>Select Primary Interest</option>
+                                        <option value="Quantitative Research">Quantitative Research</option>
+                                        <option value="Qualitative Research">Qualitative Research</option>
+                                        <option value="Mixed Methods">Mixed Methods</option>
+                                        <option value="Applied / Systems Building">Applied / Systems Building</option>
+                                        <option value="System Optimization">System Optimization</option>
+                                        <option value="Security Analysis">Security Analysis</option>
+                                    </select>
+                                    {profileErrors.interests && <p className="text-xs text-red-500 font-semibold mt-1">{profileErrors.interests}</p>}
+                                </div>
+                            </form>
+                        </div>
+                        <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
+                            <button onClick={() => setIsProfileModalOpen(false)} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-200 transition-colors">Cancel</button>
+                            <button form="profileForm" type="submit" className="px-8 py-3 rounded-xl font-bold text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2" style={{ backgroundColor: "#2c5f5d" }}>
+                                <FaSave /> Save Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="max-w-6xl mx-auto">
                 {/* Header Stats */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">Student Group Requests</h1>
+                        <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight flex items-center gap-4">
+                            Student Group Requests
+                            <button 
+                                onClick={() => setIsProfileModalOpen(true)}
+                                className="text-sm bg-blue-50 text-blue-600 p-2 rounded-xl hover:bg-blue-600 hover:text-white transition-colors"
+                                title="Edit Matching Profile"
+                            >
+                                <FaUserEdit size={20} />
+                            </button>
+                        </h1>
                         <p className="text-gray-500 mt-2">Manage incoming supervision requests from student groups.</p>
                     </div>
-                    
+
                     <div className="flex gap-4">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
                             <div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><FaUsers className="text-xl" /></div>
@@ -147,7 +364,7 @@ const SupervisorAllocation = () => {
 
                 {/* Dashboard Grid */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                    
+
                     {/* Incoming Requests Column */}
                     <div className="space-y-6">
                         <div className="flex items-center justify-between pb-2 border-b border-gray-200">
@@ -173,7 +390,7 @@ const SupervisorAllocation = () => {
                                             </div>
                                             <span className="text-xs font-semibold text-gray-400">{request.date}</span>
                                         </div>
-                                        
+
                                         <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-4 transition-all hover:bg-blue-50/50 hover:border-blue-100">
                                             <div className="flex gap-2 mb-3">
                                                 <div className="flex -space-x-2">
@@ -197,18 +414,17 @@ const SupervisorAllocation = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
-                                            <button 
+                                            <button
                                                 onClick={() => handleAccept(request)}
                                                 disabled={isFull}
-                                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                                                    isFull 
-                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                                                    : 'bg-green-100 text-green-700 hover:bg-green-600 hover:text-white hover:shadow-lg'
-                                                }`}
+                                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all ${isFull
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-green-100 text-green-700 hover:bg-green-600 hover:text-white hover:shadow-lg'
+                                                    }`}
                                             >
                                                 <FaCheck /> {isFull ? 'Capacity Full' : 'Accept Request'}
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleReject(request)}
                                                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all hover:shadow-lg"
                                             >
@@ -226,24 +442,38 @@ const SupervisorAllocation = () => {
                         <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                             <FaCheck className="text-green-500" /> Your Supervised Groups
                         </h2>
-                        
+
                         <div className="space-y-4">
                             {acceptedGroups.length === 0 ? (
                                 <p className="text-gray-400 text-sm text-center py-6">You haven't accepted any groups yet.</p>
                             ) : (
                                 acceptedGroups.map((group) => (
                                     <div key={group.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center transition-all hover:bg-white hover:shadow-sm">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-xs font-bold px-2 py-1 bg-green-100 text-green-700 rounded-md">
+                                        <div className="w-full mr-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="text-xs font-bold px-2 py-1 bg-green-100 text-green-700 rounded-md shrink-0">
                                                     {group.groupId}
                                                 </span>
-                                                <h4 className="font-bold text-gray-800">{group.domain}</h4>
+                                                <h4 className="font-bold text-gray-800 text-sm truncate">{group.domain}</h4>
                                             </div>
-                                            <p className="text-sm text-gray-500 truncate max-w-[200px] sm:max-w-xs">{group.Members}</p>
+                                            <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
+                                                Team: <span className="text-blue-600">{group.membersList || group.Members}</span>
+                                            </p>
+                                            <p className="text-sm text-gray-600 italic bg-white p-3 rounded-xl border border-gray-100 shadow-sm leading-relaxed">
+                                                "{group.topic || group.reason}"
+                                            </p>
                                         </div>
-                                        <div className="text-green-500 bg-green-50 p-2 rounded-full">
-                                            <FaCheck />
+                                        <div className="flex items-center gap-2">
+                                            <div className="text-green-500 bg-green-50 p-2 rounded-full" title="Active Group">
+                                                <FaCheck />
+                                            </div>
+                                            <button
+                                                onClick={() => handleRemoveGroup(group)}
+                                                className="text-red-400 bg-red-50 hover:bg-red-500 hover:text-white p-2 rounded-full transition-all"
+                                                title="Remove Group"
+                                            >
+                                                <FaTimes />
+                                            </button>
                                         </div>
                                     </div>
                                 ))

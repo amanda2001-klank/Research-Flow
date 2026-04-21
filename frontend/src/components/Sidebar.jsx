@@ -1,14 +1,13 @@
 import { useContext } from "react";
-import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory, FaFlask, FaTicketAlt, FaHeadset } from "react-icons/fa";
+import { FaGraduationCap, FaUserFriends, FaSearch, FaBook, FaFileAlt, FaSignOutAlt, FaCommentDots, FaBullhorn, FaQuestionCircle, FaRobot, FaUserShield, FaUserGraduate, FaUsers, FaClipboardList, FaClipboardCheck, FaHome, FaChartLine, FaShieldAlt, FaHistory, FaFlask } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 
 const Sidebar = ({ view, setView }) => {
     const { user, dispatch } = useContext(AuthContext);
-    const navigate = useNavigate();
 
     const handleLogout = () => {
+        localStorage.removeItem("user");
         dispatch({ type: "LOGOUT" });
         window.location.href = "/login";
     };
@@ -21,9 +20,7 @@ const Sidebar = ({ view, setView }) => {
                 { name: "Announcements", icon: <FaBullhorn size={20} /> },
                 { name: "Manage Sponsors", icon: <FaUserShield size={20} /> },
                 { name: "Manage Students", icon: <FaUserGraduate size={20} /> },
-                { name: "Manage Users", icon: <FaUsers size={20} /> },
                 { name: "All Sponsors", icon: <FaUsers size={20} /> },
-                { name: "Support Tickets", icon: <FaTicketAlt size={20} /> },
             ];
         } else if (user?.role === 'sponsor') {
             return [
@@ -39,6 +36,7 @@ const Sidebar = ({ view, setView }) => {
             return [
                 { name: "Student Home", icon: <FaHome size={20} /> },
                 { name: "Research Ideas", icon: <FaFlask size={20} /> },
+                { name: "Find Supervisor", icon: <FaSearch size={20} /> },
                 { name: "Project Milestones", icon: <FaChartLine size={20} /> },
                 { name: "Research Timeline", icon: <FaHistory size={20} /> },
                 { name: "Plagiarism Checker", icon: <FaShieldAlt size={20} /> },
@@ -48,7 +46,6 @@ const Sidebar = ({ view, setView }) => {
                 { name: "Announcements", icon: <FaBullhorn size={20} /> },
                 { name: "Fortnight Log", icon: <FaClipboardList size={20} /> },
                 { name: "Documents", icon: <FaFileAlt size={20} /> },
-                { name: "Raise Ticket", icon: <FaHeadset size={20} /> },
             ];
         }
     };
@@ -56,14 +53,22 @@ const Sidebar = ({ view, setView }) => {
     const navItems = getNavItems();
 
     return (
-       <div className="w-[260px] bg-[#2F4F4F] text-gray-300 flex flex-col h-screen overflow-y-auto font-sans">
+        <div className="w-[260px] bg-[#2F4F4F] text-gray-300 flex flex-col h-full font-sans">
             {/* Logo Section */}
-            <div className="p-6 flex items-center justify-center border-b border-gray-700">
-                <img src="/logo2.png" alt="ResearchFlow" className="h-24 object-contain" />
+            <div className="p-6 flex items-center gap-3">
+                <div className="p-2 bg-[#FFD700] rounded-lg">
+                    <FaGraduationCap className="text-[#2F4F4F] text-xl" />
+                </div>
+                <div>
+                    <h1 className="text-white font-bold text-lg tracking-wide">ResearchFlow</h1>
+                    <span className="text-xs uppercase tracking-wider text-gray-400 font-medium">
+                        {user?.role || 'User'}
+                    </span>
+                </div>
             </div>
 
             {/* Navigation */}
-            <div className="flex-1 flex flex-col gap-1 px-4 mt-4">
+            <div className="flex-1 flex flex-col gap-1 px-4 mt-4 overflow-y-auto overflow-x-hidden" style={{ scrollbarWidth: 'thin', scrollbarColor: '#3A5F5F transparent' }}>
                 {navItems.map((item) => (
                     <div
                         key={item.name}
@@ -81,18 +86,12 @@ const Sidebar = ({ view, setView }) => {
 
             {/* User Profile & Logout */}
             <div className="p-4 border-t border-[#3A5F5F]">
-                <div 
-                    onClick={() => navigate("/profile")}
-                    className="flex items-center gap-3 mb-4 cursor-pointer hover:opacity-80 transition"
-                >
+                <div className="flex items-center gap-3 mb-4">
                     <div className="relative">
                         <img
-                            src={user?.avatar ? `http://localhost:5000${user.avatar}` : `https://ui-avatars.com/api/?name=${user?.username}&background=FFD700&color=2F4F4F`}
+                            src={`https://ui-avatars.com/api/?name=${user?.username}&background=FFD700&color=2F4F4F`}
                             alt="User"
-                            className="w-10 h-10 rounded-full border-2 border-[#3A5F5F] object-cover"
-                            onError={(e) => {
-                                e.target.src = `https://ui-avatars.com/api/?name=${user?.username}&background=FFD700&color=2F4F4F`;
-                            }}
+                            className="w-10 h-10 rounded-full border-2 border-[#3A5F5F]"
                         />
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#2F4F4F]"></div>
                     </div>

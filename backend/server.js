@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const path = require('path');
-const fs = require('fs');
 const { Server } = require("socket.io");
 require('dotenv').config();
 
@@ -18,21 +17,6 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-
-// Create necessary directories if they don't exist
-const uploadDir = path.join(__dirname, 'uploads');
-const avatarDir = path.join(__dirname, 'uploads/avatars');
-const documentDir = path.join(__dirname, 'uploads/documents');
-
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-if (!fs.existsSync(avatarDir)) {
-  fs.mkdirSync(avatarDir, { recursive: true });
-}
-if (!fs.existsSync(documentDir)) {
-  fs.mkdirSync(documentDir, { recursive: true });
-}
 
 app.use(cors());
 app.use(express.json());
@@ -50,7 +34,7 @@ const faqRoute = require('./routes/faq');
 const fortnightRoute = require('./routes/fortnight');
 const documentRoute = require('./routes/documents');
 const evaluationRoute = require('./routes/evaluations');
-const ticketRoute = require('./routes/tickets');
+const supervisorRequestRoute = require('./routes/supervisorRequests');
 
 // Make io accessible to our router
 app.use((req, res, next) => {
@@ -68,7 +52,7 @@ app.use('/api/faq', faqRoute);
 app.use('/api/fortnight', fortnightRoute);
 app.use('/api/documents', documentRoute);
 app.use('/api/evaluations', evaluationRoute);
-app.use('/api/tickets', ticketRoute);
+app.use('/api/supervisor-requests', supervisorRequestRoute);
 
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);

@@ -13,7 +13,11 @@ const userSchema = new mongoose.Schema({
         email: { type: Boolean, default: true },
         push: { type: Boolean, default: true },
         sms: { type: Boolean, default: false }
-    }
+    },
+    expertise: { type: String, default: "" },
+    experienceYears: { type: Number, default: 0 },
+    skills: { type: String, default: "" },
+    interests: { type: String, default: "" }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

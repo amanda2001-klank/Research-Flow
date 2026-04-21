@@ -1,38 +1,45 @@
 import { useState, useEffect, useContext } from "react";
-import { FaSearch, FaUserTie, FaCheckCircle, FaLightbulb, FaFlask, FaBell } from "react-icons/fa";
+import { FaSearch, FaCheckCircle, FaLightbulb, FaFlask, FaBell, FaTrash, FaSignOutAlt, FaHome } from "react-icons/fa";
 import { AuthContext } from "../context/AuthContext";
 import { SocketContext } from "../context/SocketContext";
 import axios from "axios";
 
-const StudentResearchForm = () => {
+const StudentResearchForm = ({ setView, setChatWith }) => {
     const { user } = useContext(AuthContext);
     const { socket } = useContext(SocketContext);
-    
+
     // Search form states
     const [domain, setDomain] = useState("");
     const [interests, setInterests] = useState("");
     const [methodology, setMethodology] = useState("");
     const [isSearching, setIsSearching] = useState(false);
     const [matches, setMatches] = useState([]);
-    
+
     // Request Modal States
     const [selectedSupervisor, setSelectedSupervisor] = useState(null);
     const [formData, setFormData] = useState({ it1: "", it2: "", it3: "", it4: "", topic: "" });
     const [formErrors, setFormErrors] = useState({});
-    
+
     // States for requests and toasts
-    const [myRequests, setMyRequests] = useState(() => {
-        const saved = localStorage.getItem(`myRequests_${user?._id}`);
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [myRequests, setMyRequests] = useState([]);
+    const [dataLoaded, setDataLoaded] = useState(false);
     const [toastMessage, setToastMessage] = useState(null);
+
+    // Initial load when user becomes available
+    useEffect(() => {
+        if (user?._id && !dataLoaded) {
+            const saved = localStorage.getItem(`myRequests_${user._id}`);
+            if (saved) setMyRequests(JSON.parse(saved));
+            setDataLoaded(true);
+        }
+    }, [user, dataLoaded]);
 
     // Persist to local storage whenever it changes
     useEffect(() => {
-        if (user?._id) {
+        if (user?._id && dataLoaded) {
             localStorage.setItem(`myRequests_${user._id}`, JSON.stringify(myRequests));
         }
-    }, [myRequests, user?._id]);
+    }, [myRequests, user, dataLoaded]);
 
     // Auto-hide toast
     useEffect(() => {
@@ -48,10 +55,17 @@ const StudentResearchForm = () => {
             const handleMessage = (data) => {
                 if (data.type === "REQUEST_ACCEPTED" || data.type === "REQUEST_REJECTED") {
                     // Update the real-time status of the request silently in the box
-                    setMyRequests(prev => prev.map(req => 
-                        req.sponsorId === data.sponsorId 
-                        ? { ...req, status: data.type === "REQUEST_ACCEPTED" ? "Accepted" : "Rejected" } 
-                        : req
+                    setMyRequests(prev => prev.map(req =>
+                        req.sponsorId === data.sponsorId
+                            ? { ...req, status: data.type === "REQUEST_ACCEPTED" ? "Accepted" : "Rejected" }
+                            : req
+                    ));
+                } else if (data.type === "GROUP_REMOVED") {
+                    // Status goes back to rejected if the sponsor drops them
+                    setMyRequests(prev => prev.map(req =>
+                        req.sponsorId === data.sponsorId
+                            ? { ...req, status: "Rejected" }
+                            : req
                     ));
                 }
             };
@@ -68,17 +82,17 @@ const StudentResearchForm = () => {
             // Fetch real sponsors from the database
             const res = await axios.get("http://localhost:5000/api/auth/users");
             const sponsors = res.data.filter(u => u.role === "sponsor");
-            
-            // Map to our UI data structure with some mock stats so the UI looks beautiful
-            const mappedSponsors = sponsors.map((s, index) => ({
+
+            const mappedSponsors = sponsors.map((s) => ({
                 id: s._id,
                 name: s.fullName || s.username,
+                avatar: s.avatar || `https://i.pravatar.cc/150?u=${s._id}`,
                 expertise: [domain || "General Research", "Methodology"], // Using search term as mock expertise
                 load: Math.floor(Math.random() * 3), // Mock load
-                maxLoad: 2, 
+                maxLoad: 2,
                 matchScore: Math.floor(Math.random() * 20) + 75 // Random high match score
             })).sort((a, b) => b.matchScore - a.matchScore);
-            
+
             setMatches(mappedSponsors);
         } catch (err) {
             console.error(err);
@@ -105,7 +119,7 @@ const StudentResearchForm = () => {
         if (!itRegex.test(formData.it2)) errors.it2 = "Format must be ITXXXXXXXX (e.g., IT23333333)";
         if (!itRegex.test(formData.it3)) errors.it3 = "Format must be ITXXXXXXXX (e.g., IT23333333)";
         if (!itRegex.test(formData.it4)) errors.it4 = "Format must be ITXXXXXXXX (e.g., IT23333333)";
-        
+
         if (!formData.topic || formData.topic.trim().length < 5) {
             errors.topic = "Please provide a descriptive research topic (min 5 chars).";
         }
@@ -116,32 +130,43 @@ const StudentResearchForm = () => {
 
     const handleSubmitRequest = (e) => {
         e.preventDefault();
-        
+
         if (!validateForm()) return;
 
-        // Send real-time socket event!
         if (socket && selectedSupervisor) {
-            socket.emit("send_message", {
-                room: selectedSupervisor.id, // The sponsor's user._id room
-                type: "NEW_REQUEST",
-                requestData: {
-                    id: Date.now(),
-                    studentId: user._id,
-                    groupId: `GRP-${formData.it1.substring(2,6).toUpperCase()}`,
-                    membersList: [formData.it1.toUpperCase(), formData.it2.toUpperCase(), formData.it3.toUpperCase(), formData.it4.toUpperCase()].join(", "),
-                    topic: formData.topic,
-                    domain: domain || "General Research",
-                    reason: interests ? `Interested in ${interests}` : "Research collaboration",
-                    date: "Just Now"
-                }
-            });
-            
-            // Add to My Requests
-            setMyRequests(prev => [{
+            const newRequest = {
                 id: Date.now(),
+                studentId: user._id,
+                groupId: `GRP-${formData.it1.substring(2, 6).toUpperCase()}`,
+                membersList: [formData.it1.toUpperCase(), formData.it2.toUpperCase(), formData.it3.toUpperCase(), formData.it4.toUpperCase()].join(", "),
+                topic: formData.topic,
+                domain: domain || "General Research",
+                reason: interests ? `Interested in ${interests}` : "Research collaboration",
+                date: "Just Now"
+            };
+
+            // Send real-time socket event (works if they are online)
+            socket.emit("send_message", {
+                room: selectedSupervisor.id,
+                type: "NEW_REQUEST",
+                requestData: newRequest
+            });
+
+            const sponsorKey = `supervisorRequests_${selectedSupervisor.id}`;
+            const sponsorOfflineRequests = JSON.parse(localStorage.getItem(sponsorKey) || "[]");
+            // Only add if not already there (id check)
+            if (!sponsorOfflineRequests.some(r => r.id === newRequest.id)) {
+                sponsorOfflineRequests.push(newRequest);
+                localStorage.setItem(sponsorKey, JSON.stringify(sponsorOfflineRequests));
+            }
+
+            // Add to Student's My Requests
+            setMyRequests(prev => [{
+                id: newRequest.id,
                 sponsorId: selectedSupervisor.id,
                 sponsorName: selectedSupervisor.name,
-                topic: formData.topic,
+                groupId: newRequest.groupId,
+                topic: newRequest.topic,
                 status: "Pending",
                 date: new Date().toLocaleTimeString()
             }, ...prev]);
@@ -150,6 +175,54 @@ const StudentResearchForm = () => {
             setSelectedSupervisor(null); // Close modal
         } else {
             setToastMessage({ type: "error", text: "Not connected to real-time server." });
+        }
+    };
+
+    const handleDeleteNotification = (reqId) => {
+        setMyRequests(prev => prev.filter(r => r.id !== reqId));
+        setToastMessage({ type: "success", text: "Notification removed from your requests." });
+    };
+
+    const handleCancelRequest = (reqId, sponsorId) => {
+        // 1. Remove from local student UI
+        setMyRequests(prev => prev.filter(r => r.id !== reqId));
+
+        // 2. Remove from sponsor's offline database
+        const sponsorKey = `supervisorRequests_${sponsorId}`;
+        const sponsorOfflineRequests = JSON.parse(localStorage.getItem(sponsorKey) || "[]");
+        const filtered = sponsorOfflineRequests.filter(r => r.id !== reqId);
+        localStorage.setItem(sponsorKey, JSON.stringify(filtered));
+
+        // 3. Emit real-time signal in case sponsor is currently viewing
+        if (socket) {
+            socket.emit("send_message", {
+                room: sponsorId,
+                type: "CANCEL_REQUEST",
+                requestId: reqId
+            });
+        }
+
+        setToastMessage({ type: "success", text: "Your request was successfully cancelled and withdrawn." });
+    };
+
+    const handleConnectChat = (req) => {
+        const acceptedKey = `acceptedGroups_${req.sponsorId}`;
+        const sponsorAcceptedGroups = JSON.parse(localStorage.getItem(acceptedKey) || "[]");
+
+        const group = sponsorAcceptedGroups.find(g => g.id === req.id);
+
+        if (group && setView && setChatWith) {
+            setChatWith({
+                isGroupChat: true,
+                group: group,
+                sponsorId: req.sponsorId,
+                studentId: group.studentId,
+                _id: req.sponsorId,
+                username: group.groupId ? `Group: ${group.groupId}` : `Group Chat`
+            });
+            setView('Chat');
+        } else {
+            setToastMessage({ type: "error", text: "Group context could not be loaded for chat." });
         }
     };
 
@@ -162,22 +235,22 @@ const StudentResearchForm = () => {
                 </div>
             )}
             {/* Background decorations */}
-            <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob pointer-events-none"></div>
-            <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000 pointer-events-none"></div>
-            <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000 pointer-events-none"></div>
+            <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#2c5f5d] rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob pointer-events-none"></div>
+            <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-[#E8A63A] rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000 pointer-events-none"></div>
+            <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-[#3A5F5F] rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000 pointer-events-none"></div>
 
             {/* Request Modal */}
             {selectedSupervisor && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fadeIn">
                     <div className="bg-white max-w-2xl w-full rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="p-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white flex justify-between items-center shrink-0">
+                        <div className="p-6 text-white flex justify-between items-center shrink-0" style={{ backgroundColor: "#2c5f5d" }}>
                             <div>
                                 <h3 className="text-2xl font-bold">Group Registration</h3>
-                                <p className="text-blue-100 text-sm">Requesting Supervision from {selectedSupervisor.name}</p>
+                                <p className="text-gray-200 text-sm">Requesting Supervision from {selectedSupervisor.name}</p>
                             </div>
                             <button onClick={() => setSelectedSupervisor(null)} className="text-white hover:text-gray-200 transition-colors p-2 text-xl">&times;</button>
                         </div>
-                        
+
                         <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
                             <form id="groupForm" onSubmit={handleSubmitRequest} className="space-y-6">
                                 <div>
@@ -186,11 +259,11 @@ const StudentResearchForm = () => {
                                         {[1, 2, 3, 4].map(num => (
                                             <div key={`it${num}`}>
                                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Student {num} IT No.</label>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="e.g. IT23333333" 
-                                                    value={formData[`it${num}`]} 
-                                                    onChange={e => setFormData({...formData, [`it${num}`]: e.target.value})}
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. IT23333333"
+                                                    value={formData[`it${num}`]}
+                                                    onChange={e => setFormData({ ...formData, [`it${num}`]: e.target.value })}
                                                     className={`w-full px-4 py-3 rounded-xl border ${formErrors[`it${num}`] ? 'border-red-400 focus:ring-red-200 focus:border-red-500' : 'border-gray-200 focus:ring-blue-200 focus:border-blue-500'} focus:ring-2 transition-all outline-none bg-gray-50 uppercase`}
                                                 />
                                                 {formErrors[`it${num}`] && <p className="text-xs text-red-500 font-semibold mt-1">{formErrors[`it${num}`]}</p>}
@@ -201,11 +274,11 @@ const StudentResearchForm = () => {
 
                                 <div>
                                     <label className="block text-sm font-bold text-gray-800 mb-2">Detailed Research Topic</label>
-                                    <textarea 
-                                        rows="3" 
-                                        placeholder="Briefly describe your proposed research topic..." 
-                                        value={formData.topic} 
-                                        onChange={e => setFormData({...formData, topic: e.target.value})}
+                                    <textarea
+                                        rows="3"
+                                        placeholder="Briefly describe your proposed research topic..."
+                                        value={formData.topic}
+                                        onChange={e => setFormData({ ...formData, topic: e.target.value })}
                                         className={`w-full px-4 py-3 rounded-xl border ${formErrors.topic ? 'border-red-400 focus:ring-red-200 focus:border-red-500' : 'border-gray-200 focus:ring-blue-200 focus:border-blue-500'} focus:ring-2 transition-all outline-none bg-gray-50 resize-none`}
                                     ></textarea>
                                     {formErrors.topic && <p className="text-xs text-red-500 font-semibold mt-1">{formErrors.topic}</p>}
@@ -215,7 +288,7 @@ const StudentResearchForm = () => {
 
                         <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
                             <button onClick={() => setSelectedSupervisor(null)} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-200 transition-colors">Cancel</button>
-                            <button form="groupForm" type="submit" className="px-8 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">Submit Request</button>
+                            <button form="groupForm" type="submit" className="px-8 py-3 rounded-xl font-bold text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all" style={{ backgroundColor: "#E8A63A" }}>Submit Request</button>
                         </div>
                     </div>
                 </div>
@@ -225,7 +298,7 @@ const StudentResearchForm = () => {
                 <div className="lg:col-span-5">
                     <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50">
                         <div className="mb-8">
-                            <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
+                            <h1 className="text-3xl font-extrabold mb-2" style={{ color: "#2c5f5d" }}>
                                 Research Profile
                             </h1>
                             <p className="text-gray-500 text-sm">
@@ -296,17 +369,17 @@ const StudentResearchForm = () => {
                             <button
                                 type="submit"
                                 disabled={isSearching}
-                                className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg transition-transform transform ${
-                                    isSearching 
-                                    ? "bg-gray-400 cursor-not-allowed" 
-                                    : "bg-gradient-to-r from-blue-600 to-purple-600 hover:-translate-y-1 hover:shadow-xl"
-                                }`}
+                                className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg transition-transform transform ${isSearching
+                                    ? "bg-gray-400 cursor-not-allowed"
+                                    : "hover:-translate-y-1 hover:shadow-xl"
+                                    }`}
+                                style={isSearching ? {} : { backgroundColor: "#2c5f5d" }}
                             >
                                 {isSearching ? "Searching Network..." : "Find My Supervisor"}
                             </button>
                         </form>
                     </div>
-                    
+
                     {/* My Requests Tracker */}
                     <div className="mt-8 bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50">
                         <h2 className="text-xl font-bold text-gray-800 border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
@@ -324,9 +397,36 @@ const StudentResearchForm = () => {
                                         <div className="pl-2">
                                             <div className="flex justify-between items-start mb-2">
                                                 <h3 className="font-bold text-gray-800 text-sm">To: {req.sponsorName}</h3>
-                                                <span className={`text-[10px] uppercase tracking-bold font-bold px-2 py-1 rounded-md ${req.status === 'Accepted' ? 'bg-green-100 text-green-700' : req.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                                    {req.status}
-                                                </span>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-[10px] uppercase tracking-bold font-bold px-2 py-1 rounded-md ${req.status === 'Accepted' ? 'bg-green-100 text-green-700' : req.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                            {req.status}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => handleDeleteNotification(req.id)}
+                                                            className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                                            title="Delete Notification"
+                                                        >
+                                                            <FaTrash size={12} />
+                                                        </button>
+                                                    </div>
+                                                    {req.status === 'Pending' && (
+                                                        <button
+                                                            onClick={() => handleCancelRequest(req.id, req.sponsorId)}
+                                                            className="text-[10px] text-red-500 hover:text-red-700 underline font-medium cursor-pointer"
+                                                        >
+                                                            Cancel Request
+                                                        </button>
+                                                    )}
+                                                    {req.status === 'Accepted' && setView && (
+                                                        <button
+                                                            onClick={() => handleConnectChat(req)}
+                                                            className="mt-1 text-[10px] bg-blue-600 text-white hover:bg-blue-700 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer shadow-sm"
+                                                        >
+                                                            Connect to Chat
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                             <p className="text-xs text-gray-500 italic mb-2 line-clamp-2">Topic: {req.topic}</p>
                                             <p className="text-[10px] text-gray-400">Sent at {req.date}</p>
@@ -364,8 +464,8 @@ const StudentResearchForm = () => {
                             ) : null}
 
                             {matches.map((supervisor, index) => (
-                                <div 
-                                    key={supervisor.id} 
+                                <div
+                                    key={supervisor.id}
                                     className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group"
                                     style={{ animation: `fadeIn 0.5s ease-out ${index * 0.1}s both` }}
                                 >
@@ -374,15 +474,19 @@ const StudentResearchForm = () => {
                                     </div>
 
                                     <div className="flex items-start gap-4">
-                                        <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-100 to-purple-100 flex items-center justify-center text-2xl font-bold text-blue-600 border-2 border-white shadow-sm shrink-0 uppercase">
-                                            {supervisor.name.substring(0,2)}
+                                        <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center border-2 border-white shadow-sm shrink-0 bg-gray-50">
+                                            <img 
+                                                src={supervisor.avatar || `https://i.pravatar.cc/150?u=${supervisor.id}`} 
+                                                alt={supervisor.name} 
+                                                className="w-full h-full object-cover" 
+                                            />
                                         </div>
                                         <div className="flex-1">
                                             <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                                                 {supervisor.name}
-                                                <FaCheckCircle className="text-blue-500 text-sm" />
+                                                <FaCheckCircle style={{ color: "#E8A63A" }} className="text-sm" />
                                             </h3>
-                                            
+
                                             <div className="flex flex-wrap gap-2 mt-2 mb-3">
                                                 {supervisor.expertise.map((skill, idx) => (
                                                     <span key={idx} className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-medium border border-blue-100">
@@ -393,8 +497,8 @@ const StudentResearchForm = () => {
 
                                             <div className="flex items-center gap-3 text-sm">
                                                 <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div 
-                                                        className={`h-full rounded-full ${supervisor.load >= supervisor.maxLoad ? 'bg-red-500' : supervisor.load / supervisor.maxLoad > 0.6 ? 'bg-yellow-500' : 'bg-green-500'}`} 
+                                                    <div
+                                                        className={`h-full rounded-full ${supervisor.load >= supervisor.maxLoad ? 'bg-red-500' : supervisor.load / supervisor.maxLoad > 0.6 ? 'bg-yellow-500' : 'bg-green-500'}`}
                                                         style={{ width: `${(supervisor.load / supervisor.maxLoad) * 100}%` }}
                                                     ></div>
                                                 </div>
@@ -404,23 +508,23 @@ const StudentResearchForm = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="mt-4 pt-4 border-t border-gray-50 flex justify-end">
                                         {(() => {
                                             const isRequested = myRequests.some(r => r.sponsorId === supervisor.id && r.status !== "Rejected");
                                             const isFull = supervisor.load >= supervisor.maxLoad;
-                                            
+
                                             return (
-                                                <button 
+                                                <button
                                                     onClick={() => handleOpenModal(supervisor)}
                                                     disabled={isRequested || isFull}
-                                                    className={`px-5 py-2 text-sm font-semibold rounded-xl transition-all ${
-                                                        isRequested 
-                                                        ? "bg-yellow-50 text-yellow-700 border border-yellow-200 cursor-default" 
-                                                        : isFull 
-                                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
-                                                        : "bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white hover:shadow-lg"
-                                                    }`}
+                                                    className={`px-5 py-2 text-sm font-semibold rounded-xl transition-all ${isRequested
+                                                        ? "bg-yellow-50 text-yellow-700 border border-yellow-200 cursor-default"
+                                                        : isFull
+                                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                            : "hover:shadow-lg text-white"
+                                                        }`}
+                                                    style={(!isRequested && !isFull) ? { backgroundColor: "#2c5f5d" } : {}}
                                                 >
                                                     {isRequested ? "Request Sent" : isFull ? "Capacity Reached" : "Request Supervision"}
                                                 </button>
